@@ -1,12 +1,14 @@
 import { Todo } from './slices/todosSlice';
 import { TodoList } from './slices/listsSlice';
 import { PomodoroSettings } from './slices/uiSlice';
+import { Tag } from './slices/tagsSlice';
 
 // 存储键名
 export const STORAGE_KEYS = {
   TODOS: 'todos',
   LISTS: 'lists',
   SETTINGS: 'settings',
+  TAGS: 'tags'
 } as const;
 
 // 存储接口
@@ -14,13 +16,14 @@ export interface StorageData {
   [STORAGE_KEYS.TODOS]?: Todo[];
   [STORAGE_KEYS.LISTS]?: TodoList[];
   [STORAGE_KEYS.SETTINGS]?: UISettings;
+  [STORAGE_KEYS.TAGS]?: Tag[];
 }
 
 // UI设置类型
 export interface UISettings {
   theme: 'light' | 'dark';
   sidebarWidth: 'normal' | 'collapsed';
-  currentView?: 'myDay' | 'important' | 'planned' | 'list' | 'week';
+  currentView?: 'myDay' | 'important' | 'planned' | 'list' | 'week' | 'pomodoro' | 'tags';
   weekViewDate?: string;
   pomodoroSettings?: PomodoroSettings;
 }
@@ -80,4 +83,14 @@ export const getSettings = (): Promise<UISettings | undefined> => {
 // 保存设置
 export const setSettings = (settings: UISettings): Promise<void> => {
   return setData(STORAGE_KEYS.SETTINGS, settings);
+};
+
+// 获取标签
+export const getTags = (): Promise<Tag[]> => {
+  return getData<Tag[]>(STORAGE_KEYS.TAGS).then((tags) => tags || []);
+};
+
+// 保存标签
+export const setTags = (tags: Tag[]): Promise<void> => {
+  return setData(STORAGE_KEYS.TAGS, tags);
 }; 

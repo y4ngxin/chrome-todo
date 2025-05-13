@@ -5,6 +5,7 @@ import { AppState, useAppDispatch, store } from '../utils/store';
 import { lightTheme, darkTheme, GlobalStyle } from '../styles/theme';
 import { fetchTodos } from '../utils/slices/todosSlice';
 import { fetchLists } from '../utils/slices/listsSlice';
+import { fetchTags } from '../utils/slices/tagsSlice';
 import { fetchSettings, setNetworkStatus } from '../utils/slices/uiSlice';
 import AddTodoForm from './AddTodoForm';
 import TodoList from './TodoList';
@@ -13,6 +14,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import TodoDetail from './TodoDetail';
 import PomodoroTimer from './PomodoroTimer';
+import TagsView from './TagsView';
 import { listenToNetworkChanges, getNetworkStatus } from '../utils/offlineSupport';
 import { setupPeriodicSync, checkAndSync } from '../utils/syncService';
 import { AnyAction } from '@reduxjs/toolkit';
@@ -74,12 +76,30 @@ const LoadingScreen = styled.div`
   color: ${props => props.theme.textColor};
 `;
 
+// 番茄钟视图
+const PomodoroView = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+`;
+
+const PomodoroTitle = styled.h2`
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: ${props => props.theme.textColor};
+`;
+
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const { theme, sidebarWidth, currentView } = useSelector((state: AppState) => state.ui);
   const activeListId = useSelector((state: AppState) => state.lists.activeListId);
   const todosStatus = useSelector((state: AppState) => state.todos.status);
   const listsStatus = useSelector((state: AppState) => state.lists.status);
+  const tagsStatus = useSelector((state: AppState) => state.tags.status);
   const currentTheme = theme === 'light' ? lightTheme : darkTheme;
   
   // 当前查看的任务详情ID
@@ -98,7 +118,11 @@ const App: React.FC = () => {
     if (listsStatus === 'idle') {
       dispatch(fetchLists() as unknown as AnyAction);
     }
-  }, [dispatch, todosStatus, listsStatus]);
+    
+    if (tagsStatus === 'idle') {
+      dispatch(fetchTags() as unknown as AnyAction);
+    }
+  }, [dispatch, todosStatus, listsStatus, tagsStatus]);
   
   // 配置网络状态监听
   useEffect(() => {
@@ -132,7 +156,7 @@ const App: React.FC = () => {
   }, [dispatch]);
   
   // 检查数据是否正在加载
-  const isLoading = todosStatus === 'loading' || listsStatus === 'loading';
+  const isLoading = todosStatus === 'loading' || listsStatus === 'loading' || tagsStatus === 'loading';
   
   // 如果正在加载，显示加载界面
   if (isLoading) {
@@ -160,21 +184,38 @@ const App: React.FC = () => {
     setActiveTodoId(null);
   };
   
-  // 根据当前视图显示不同内容
+  // 渲染内容区域
   const renderContent = () => {
-    if (currentView === 'week') {
-      return <WeekView onTodoClick={handleOpenTodoDetail} />;
+    if (isLoading) {
+      return <LoadingScreen>加载中...</LoadingScreen>;
     }
-    
-    return (
-      <>
-        <AddTodoForm listId={activeListId || undefined} />
-        <TodoList 
-          listId={activeListId || currentView} 
-          onTodoClick={handleOpenTodoDetail}
-        />
-      </>
-    );
+
+    // 根据当前视图渲染相应内容
+    switch (currentView) {
+      case 'week':
+        return <WeekView onTodoClick={handleOpenTodoDetail} />;
+      case 'pomodoro':
+        return (
+          <PomodoroView>
+            <PomodoroTitle>番茄钟</PomodoroTitle>
+            <PomodoroTimer isFullView={true} />
+          </PomodoroView>
+        );
+      case 'tags':
+        return <TagsView onTodoClick={handleOpenTodoDetail} />;
+      default:
+        return (
+          <>
+            <TodoList 
+              listId={currentView === 'list' ? activeListId : currentView}
+              onTodoClick={handleOpenTodoDetail}
+            />
+            <AddTodoForm 
+              listId={currentView === 'list' ? activeListId : undefined}
+            />
+          </>
+        );
+    }
   };
 
   return (
@@ -185,11 +226,17 @@ const App: React.FC = () => {
         <MainContent>
           <Header />
           <Content>
-            <PomodoroTimer />
             {renderContent()}
           </Content>
         </MainContent>
         <TodoDetail 
           todoId={activeTodoId} 
           onClose={handleCloseTodoDetail} 
-          key
+          key={activeTodoId || 'no-todo'} 
+        />
+      </AppContainer>
+    </ThemeProvider>
+  );
+};
+
+export default App;

@@ -22,17 +22,28 @@ import {
   HiCheck
 } from 'react-icons/hi';
 
-const PomodoroContainer = styled.div`
+interface PomodoroContainerProps {
+  isFullView?: boolean;
+}
+
+const PomodoroContainer = styled.div<PomodoroContainerProps>`
   background-color: ${props => props.theme.cardBackground};
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 16px;
+  padding: ${props => props.isFullView ? '32px' : '16px'};
   margin-bottom: 20px;
   width: 100%;
+  max-width: ${props => props.isFullView ? '600px' : '100%'};
+  
+  ${props => props.isFullView && `
+    align-self: center;
+    margin-top: 20px;
+  `}
 `;
 
 interface TimerContainerProps {
   mode: 'work' | 'shortBreak' | 'longBreak';
+  isFullView?: boolean;
 }
 
 const TimerContainer = styled.div<TimerContainerProps>`
@@ -40,7 +51,7 @@ const TimerContainer = styled.div<TimerContainerProps>`
   flex-direction: column;
   align-items: center;
   margin-bottom: 16px;
-  padding: 20px;
+  padding: ${props => props.isFullView ? '32px 20px' : '20px'};
   border-radius: 8px;
   background-color: ${props => {
     switch(props.mode) {
@@ -52,33 +63,33 @@ const TimerContainer = styled.div<TimerContainerProps>`
   }};
 `;
 
-const TimerDisplay = styled.div`
-  font-size: 3rem;
+const TimerDisplay = styled.div<{ isFullView?: boolean }>`
+  font-size: ${props => props.isFullView ? '4rem' : '3rem'};
   font-weight: bold;
   margin-bottom: 16px;
   font-family: 'Roboto Mono', monospace;
   color: ${props => props.theme.textColor};
 `;
 
-const TimerLabel = styled.div`
-  font-size: 1rem;
+const TimerLabel = styled.div<{ isFullView?: boolean }>`
+  font-size: ${props => props.isFullView ? '1.5rem' : '1rem'};
   margin-bottom: 8px;
   color: ${props => props.theme.textMuted};
 `;
 
-const TimerControls = styled.div`
+const TimerControls = styled.div<{ isFullView?: boolean }>`
   display: flex;
-  gap: 12px;
+  gap: ${props => props.isFullView ? '20px' : '12px'};
   margin-top: 16px;
 `;
 
-const TimerButton = styled.button`
+const TimerButton = styled.button<{ isFullView?: boolean }>`
   background-color: ${props => props.theme.buttonBackground};
   color: ${props => props.theme.buttonText};
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: ${props => props.isFullView ? '60px' : '40px'};
+  height: ${props => props.isFullView ? '60px' : '40px'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,31 +107,32 @@ const TimerButton = styled.button`
   }
 `;
 
-const TimerInfo = styled.div`
-  margin-top: 8px;
-  font-size: 0.9rem;
+const TimerInfo = styled.div<{ isFullView?: boolean }>`
+  margin-top: ${props => props.isFullView ? '16px' : '8px'};
+  font-size: ${props => props.isFullView ? '1.1rem' : '0.9rem'};
   color: ${props => props.theme.textMuted};
 `;
 
-const PomodoroCount = styled.div`
+const PomodoroCount = styled.div<{ isFullView?: boolean }>`
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: ${props => props.isFullView ? '16px' : '8px'};
+  margin-top: ${props => props.isFullView ? '24px' : '8px'};
   justify-content: center;
 `;
 
 interface PomodoroCircleProps {
   active: boolean;
+  isFullView?: boolean;
 }
 
 const PomodoroCircle = styled.div<PomodoroCircleProps>`
-  width: 12px;
-  height: 12px;
+  width: ${props => props.isFullView ? '16px' : '12px'};
+  height: ${props => props.isFullView ? '16px' : '12px'};
   border-radius: 50%;
   background-color: ${props => props.active ? props.theme.primaryColor : props.theme.borderColor};
 `;
 
-const SettingsButton = styled.button`
+const SettingsButton = styled.button<{ isFullView?: boolean }>`
   background: transparent;
   border: none;
   color: ${props => props.theme.textMuted};
@@ -130,6 +142,7 @@ const SettingsButton = styled.button`
   cursor: pointer;
   padding: 8px;
   border-radius: 4px;
+  font-size: ${props => props.isFullView ? '1rem' : 'inherit'};
   
   &:hover {
     background-color: ${props => props.theme.hoverBackground};
@@ -261,19 +274,24 @@ const SaveButton = styled.button`
 interface PomoCirclesProps {
   total: number;
   completed: number;
+  isFullView?: boolean;
 }
 
-const PomoCircles: React.FC<PomoCirclesProps> = ({ total, completed }) => {
+const PomoCircles: React.FC<PomoCirclesProps> = ({ total, completed, isFullView }) => {
   return (
-    <PomodoroCount>
+    <PomodoroCount isFullView={isFullView}>
       {Array.from({ length: total }).map((_, index) => (
-        <PomodoroCircle key={index} active={index < completed} />
+        <PomodoroCircle key={index} active={index < completed} isFullView={isFullView} />
       ))}
     </PomodoroCount>
   );
 };
 
-const PomodoroTimer: React.FC = () => {
+interface PomodoroTimerProps {
+  isFullView?: boolean;
+}
+
+const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ isFullView = false }) => {
   const dispatch = useAppDispatch();
   const { pomodoro } = useSelector((state: AppState) => state.ui);
   const [showSettings, setShowSettings] = useState(false);
@@ -362,17 +380,17 @@ const PomodoroTimer: React.FC = () => {
   const progress = pomodoro.timeLeft / pomodoro.totalTime;
   
   return (
-    <PomodoroContainer>
-      <TimerContainer mode={pomodoro.mode}>
-        <TimerLabel>{getModeLabel()} {pomodoro.completedPomodoros > 0 && `#${Math.floor(pomodoro.completedPomodoros / 2) + 1}`}</TimerLabel>
-        <TimerDisplay>{formatTime(pomodoro.timeLeft)}</TimerDisplay>
+    <PomodoroContainer isFullView={isFullView}>
+      <TimerContainer mode={pomodoro.mode} isFullView={isFullView}>
+        <TimerLabel isFullView={isFullView}>{getModeLabel()} {pomodoro.completedPomodoros > 0 && `#${Math.floor(pomodoro.completedPomodoros / 2) + 1}`}</TimerLabel>
+        <TimerDisplay isFullView={isFullView}>{formatTime(pomodoro.timeLeft)}</TimerDisplay>
         
-        <TimerControls>
-          <TimerButton onClick={handleStartClick}>
-            {pomodoro.isActive ? <HiPause size={20} /> : <HiPlay size={20} />}
+        <TimerControls isFullView={isFullView}>
+          <TimerButton onClick={handleStartClick} isFullView={isFullView}>
+            {pomodoro.isActive ? <HiPause size={isFullView ? 30 : 20} /> : <HiPlay size={isFullView ? 30 : 20} />}
           </TimerButton>
-          <TimerButton onClick={handleResetClick}>
-            <HiRefresh size={20} />
+          <TimerButton onClick={handleResetClick} isFullView={isFullView}>
+            <HiRefresh size={isFullView ? 30 : 20} />
           </TimerButton>
         </TimerControls>
       </TimerContainer>
@@ -380,14 +398,15 @@ const PomodoroTimer: React.FC = () => {
       <PomoCircles 
         total={pomodoro.settings.longBreakInterval} 
         completed={pomodoro.completedPomodoros % (pomodoro.settings.longBreakInterval * 2)} 
+        isFullView={isFullView}
       />
       
-      <TimerInfo>
+      <TimerInfo isFullView={isFullView}>
         已完成 {Math.floor(pomodoro.completedPomodoros / 2)} 个番茄钟
       </TimerInfo>
       
-      <SettingsButton onClick={() => setShowSettings(true)}>
-        <HiAdjustments size={16} />
+      <SettingsButton onClick={() => setShowSettings(true)} isFullView={isFullView}>
+        <HiAdjustments size={isFullView ? 20 : 16} />
         番茄钟设置
       </SettingsButton>
       

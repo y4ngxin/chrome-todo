@@ -4,9 +4,10 @@ import styled from 'styled-components';
 import { useAppDispatch, AppState } from '../utils/store';
 import { useSelector } from 'react-redux';
 import { Todo, TodoStep, updateTodo, addStep, removeStep, toggleStepCompleted, toggleMyDay, toggleImportant, toggleCompleted, removeTodo } from '../utils/slices/todosSlice';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, addDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
+import type { Tag } from '../utils/slices/tagsSlice';
 import { 
   HiOutlineStar, 
   HiStar, 
@@ -20,7 +21,8 @@ import {
   HiOutlineCheck,
   HiOutlineFlag,
   HiOutlineExclamation,
-  HiOutlineExclamationCircle
+  HiOutlineExclamationCircle,
+  HiSelector
 } from 'react-icons/hi';
 
 // 主容器
@@ -140,20 +142,55 @@ const DateSection = styled.div`
   margin-bottom: 20px;
 `;
 
+const DateRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
 const DateLabel = styled.label`
-  display: block;
-  margin-bottom: 8px;
   color: ${props => props.theme.textMuted};
   font-size: 14px;
+  white-space: nowrap;
 `;
 
 const DateInput = styled.input`
-  padding: 8px 12px;
+  padding: 6px 8px;
   border: 1px solid ${props => props.theme.borderColor};
   border-radius: 4px;
   background-color: ${props => props.theme.inputBackground};
   color: ${props => props.theme.textColor};
-  width: 100%;
+  font-size: 14px;
+  flex: 0 0 auto;
+  width: 130px;
+  
+  &:focus {
+    outline: none;
+    border-color: ${props => props.theme.primaryColor};
+  }
+`;
+
+const DateShortcuts = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+`;
+
+const DateShortcutButton = styled.button`
+  background-color: transparent;
+  color: ${props => props.theme.textColor};
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: ${props => props.theme.hoverBackground};
+    border-color: ${props => props.theme.primaryColor};
+  }
   
   &:focus {
     outline: none;
@@ -243,7 +280,7 @@ const TagsLabel = styled.label`
 const TagsContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 8px;
 `;
 
@@ -252,35 +289,86 @@ const Tag = styled.div`
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  border-radius: 16px;
   background-color: ${props => props.theme.tagBackground};
   color: ${props => props.theme.tagText};
+  border-radius: 4px;
   font-size: 12px;
 `;
 
 const RemoveTagButton = styled.button`
   background: transparent;
   border: none;
-  color: currentColor;
-  cursor: pointer;
-  padding: 0;
+  color: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+  
+  &:hover {
+    color: ${props => props.theme.errorColor};
+  }
 `;
 
 const TagInput = styled.input`
+  width: 100%;
   padding: 8px 12px;
   border: 1px solid ${props => props.theme.borderColor};
   border-radius: 4px;
   background-color: ${props => props.theme.inputBackground};
   color: ${props => props.theme.textColor};
-  width: 100%;
+  font-size: 14px;
   
   &:focus {
     outline: none;
     border-color: ${props => props.theme.primaryColor};
+  }
+`;
+
+const TagInputContainer = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const TagsList = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: ${props => props.theme.cardBackground};
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+`;
+
+const TagOption = styled.div`
+  padding: 8px 12px;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => props.theme.backgroundHover};
+  }
+`;
+
+const SelectButton = styled.button`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.theme.textMuted};
+  cursor: pointer;
+  
+  &:hover {
+    color: ${props => props.theme.primaryColor};
   }
 `;
 
@@ -517,7 +605,7 @@ const EmptyDetail: React.FC<{isOpen: boolean; onClose: () => void}> = ({ isOpen,
 const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
   const dispatch = useAppDispatch();
   const todos = useSelector((state: AppState) => state.todos.items);
-  const todo = todos.find(t => t.id === todoId);
+  const todo = todos.find((t: Todo) => t.id === todoId);
   const isOpen = !!todoId;
   
   // 本地状态，编辑时使用
@@ -538,31 +626,35 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
   // 防止过于频繁的保存，只在状态稳定后保存
   const [shouldSave, setShouldSave] = useState(false);
   
+  const allTags = useSelector((state: AppState) => state.tags.items);
+  const [showTagsList, setShowTagsList] = useState(false);
+  
   // 保存更改到Redux - 确保useCallback在条件判断前调用
   const saveChanges = useCallback(() => {
     if (!todo || !shouldSave) return;
     
     try {
       // 创建安全的更新对象，确保所有必需字段存在
-      const safeUpdate = {
-        id: todo.id,
+      const updates: Partial<Todo> = {
         title: title || "无标题任务",
-        isMyDay: isMyDay || false,
-        isImportant: isImportant || false,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-        notes: notes || undefined,
-        steps: steps || [],
-        priority: priority || undefined,
-        tags: tags || [],
-        // 不要更新这些字段，防止循环更新
-        // completed: todo.completed,
-        // listId: todo.listId,
-        // createdAt: todo.createdAt
+        isMyDay,
+        isImportant,
+        priority,
+        tags,
+        notes,
+        steps: steps || []
       };
       
-      dispatch(updateTodo(safeUpdate));
-      // 移除过多的日志
-      // console.log('Saved changes for todo:', safeUpdate);
+      // 只有当dueDate有值时才添加到更新对象中
+      if (dueDate) {
+        updates.dueDate = new Date(dueDate).toISOString();
+      }
+      
+      // 使用updateTodo action更新任务
+      dispatch(updateTodo({ 
+        id: todo.id, 
+        updates 
+      }));
       
       // 重置保存标志
       setShouldSave(false);
@@ -728,6 +820,20 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     setNewTag('');
   };
   
+  // 从已有标签中选择
+  const handleSelectTag = (tagName: string) => {
+    if (!tagName || tags.includes(tagName)) return;
+    
+    setTags([...tags, tagName]);
+    setShowTagsList(false);
+    setNewTag('');
+  };
+  
+  // 切换标签列表显示
+  const toggleTagsList = () => {
+    setShowTagsList(!showTagsList);
+  };
+  
   // 删除标签
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
@@ -738,6 +844,8 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddTag();
+    } else if (e.key === 'Escape') {
+      setShowTagsList(false);
     }
   };
   
@@ -746,6 +854,31 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddStep();
+    }
+  };
+  
+  // 处理日期快捷选项
+  const handleDateShortcut = (shortcut: 'today' | 'tomorrow' | 'nextWeek' | 'nextWeekend' | 'clear') => {
+    switch (shortcut) {
+      case 'today':
+        setDueDate(format(new Date(), 'yyyy-MM-dd'));
+        break;
+      case 'tomorrow':
+        setDueDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+        break;
+      case 'nextWeek':
+        setDueDate(format(addDays(new Date(), 7), 'yyyy-MM-dd'));
+        break;
+      case 'nextWeekend':
+        // 获取下一个周六
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 是周日，6 是周六
+        const daysUntilSaturday = dayOfWeek === 6 ? 7 : 6 - dayOfWeek;
+        setDueDate(format(addDays(today, daysUntilSaturday), 'yyyy-MM-dd'));
+        break;
+      case 'clear':
+        setDueDate('');
+        break;
     }
   };
   
@@ -789,12 +922,46 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
         </ActionSection>
         
         <DateSection>
-          <DateLabel>截止日期</DateLabel>
-          <DateInput 
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
+          <DateRow>
+            <DateLabel>截止日期:</DateLabel>
+            <DateInput 
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+            <DateShortcuts>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('today')}
+              >
+                今天
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('tomorrow')}
+              >
+                明天
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('nextWeek')}
+              >
+                下周
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('nextWeekend')}
+              >
+                周末
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('clear')}
+              >
+                清除
+              </DateShortcutButton>
+            </DateShortcuts>
+          </DateRow>
         </DateSection>
         
         <PrioritySection>
@@ -842,12 +1009,34 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
               </Tag>
             ))}
           </TagsContainer>
-          <TagInput
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            placeholder="添加标签 (回车确认)"
-            onKeyDown={handleTagKeyDown}
-          />
+          <TagInputContainer>
+            <TagInput
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              placeholder="添加标签 (回车确认)"
+              onKeyDown={handleTagKeyDown}
+              onFocus={() => setShowTagsList(true)}
+            />
+            <SelectButton onClick={toggleTagsList} title="选择已有标签">
+              <HiSelector size={18} />
+            </SelectButton>
+            
+            {showTagsList && allTags.length > 0 && (
+              <TagsList>
+                {allTags
+                  .filter((tag: Tag) => !tags.includes(tag.name) && 
+                    (newTag.trim() === '' || tag.name.toLowerCase().includes(newTag.toLowerCase())))
+                  .map((tag: Tag) => (
+                    <TagOption 
+                      key={tag.id} 
+                      onClick={() => handleSelectTag(tag.name)}
+                    >
+                      {tag.name}
+                    </TagOption>
+                  ))}
+              </TagsList>
+            )}
+          </TagInputContainer>
         </TagsSection>
         
         <StepsSection>

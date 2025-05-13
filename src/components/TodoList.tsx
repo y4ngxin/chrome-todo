@@ -1,9 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { AppState } from '../utils/store';
 import Todo from './Todo';
 import { Todo as TodoType } from '../utils/slices/todosSlice';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import { reorderTodos } from '../utils/slices/todosSlice';
 
 const TodoListContainer = styled.div`
   margin-top: 16px;
@@ -29,18 +31,32 @@ const EmptyStateText = styled.p`
   text-align: center;
 `;
 
+const DroppableList = styled.div`
+  min-height: 5px;
+`;
+
 interface TodoListProps {
   listId?: string;  // 当前显示的列表ID，如果为空则显示所有
   filter?: 'all' | 'completed' | 'active' | 'important' | 'myDay';  // 过滤条件
   onTodoClick?: (todoId: string) => void; // 点击任务的回调函数
+  customTodos?: TodoType[]; // 自定义待办事项列表，用于外部筛选
 }
 
-const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all', onTodoClick }) => {
+const TodoList: React.FC<TodoListProps> = ({ 
+  listId, 
+  filter = 'all', 
+  onTodoClick,
+  customTodos 
+}) => {
+  const dispatch = useDispatch();
   const todos = useSelector((state: AppState) => state.todos.items);
   const currentView = useSelector((state: AppState) => state.ui.currentView);
   
+  // 如果提供了自定义待办事项列表，则使用它
+  const todosToFilter = customTodos || todos;
+  
   // 根据当前视图和过滤条件筛选待办事项
-  const filteredTodos = todos.filter((todo: TodoType) => {
+  const filteredTodos = customTodos ? todosToFilter : todosToFilter.filter((todo: TodoType) => {
     // 特殊视图处理
     if (listId === 'myDay') {
       return todo.isMyDay;
@@ -89,6 +105,26 @@ const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all', onTodoClick
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
   
+  // 处理拖拽结束事件
+  const handleDragEnd = (result: DropResult) => {
+    // 如果拖拽到了列表外或没有移动位置，则不做任何处理
+    if (!result.destination) {
+      return;
+    }
+    
+    // 如果起始位置和目标位置相同，也不做处理
+    if (result.destination.index === result.source.index) {
+      return;
+    }
+    
+    // 派发重新排序的action
+    dispatch(reorderTodos({
+      sourceIndex: result.source.index,
+      destinationIndex: result.destination.index,
+      listId: listId || currentView // 当前列表ID或视图ID
+    }));
+  };
+  
   // 如果没有待办事项，显示空状态
   if (sortedTodos.length === 0) {
     return (
@@ -103,15 +139,40 @@ const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all', onTodoClick
   
   return (
     <TodoListContainer>
-      {sortedTodos.map((todo: TodoType) => (
-        <Todo 
-          key={todo.id} 
-          todo={todo} 
-          onClick={() => {
-            onTodoClick && onTodoClick(todo.id);
-          }}
-        />
-      ))}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="todo-list">
+          {(provided: DroppableProvided) => (
+            <DroppableList
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+            >
+              {sortedTodos.map((todo: TodoType, index) => (
+                <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                  {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      style={{
+                        ...provided.draggableProps.style,
+                        opacity: snapshot.isDragging ? 0.8 : 1
+                      }}
+                    >
+                      <Todo 
+                        todo={todo} 
+                        onClick={() => {
+                          onTodoClick && onTodoClick(todo.id);
+                        }}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </DroppableList>
+          )}
+        </Droppable>
+      </DragDropContext>
     </TodoListContainer>
   );
 };

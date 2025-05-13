@@ -2,9 +2,10 @@ import React from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
 import { AppState, useAppDispatch } from '../utils/store';
-import { toggleTheme } from '../utils/slices/uiSlice';
-import { HiSun, HiMoon, HiCalendar } from 'react-icons/hi';
+import { toggleTheme, toggleSidebar, setCurrentView } from '../utils/slices/uiSlice';
+import { HiSun, HiMoon, HiCalendar, HiMenu, HiClock } from 'react-icons/hi';
 import NetworkStatus from './NetworkStatus';
+import { TodoList } from '../utils/slices/listsSlice';
 
 const HeaderContainer = styled.header`
   padding: 16px;
@@ -99,6 +100,33 @@ const RightSection = styled.div`
   gap: 8px;
 `;
 
+const LeftSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Logo = styled.h1`
+  font-size: 24px;
+  margin: 0;
+`;
+
+const Timer = styled(HiClock)`
+  font-size: 20px;
+`;
+
+const Moon = styled(HiMoon)`
+  font-size: 20px;
+`;
+
+const Sun = styled(HiSun)`
+  font-size: 20px;
+`;
+
+const Menu = styled(HiMenu)`
+  font-size: 24px;
+`;
+
 const Header: React.FC = () => {
   const dispatch = useAppDispatch();
   const { theme, currentView } = useSelector((state: AppState) => state.ui);
@@ -124,7 +152,7 @@ const Header: React.FC = () => {
     }
     
     if (currentView === 'list' && activeListId) {
-      const activeList = lists.find(list => list.id === activeListId);
+      const activeList = lists.find((list: TodoList) => list.id === activeListId);
       return activeList?.name || '任务列表';
     }
     
@@ -142,21 +170,30 @@ const Header: React.FC = () => {
   };
   
   // 切换主题
-  const handleToggleTheme = () => {
+  const handleThemeToggle = () => {
     dispatch(toggleTheme());
+  };
+  
+  const handlePomodoroClick = () => {
+    dispatch(setCurrentView('pomodoro'));
   };
   
   return (
     <HeaderContainer>
-      <TitleArea>
-        <Title>{getTitle()}</Title>
-        {getIcon()}
-      </TitleArea>
+      <LeftSection>
+        <MenuButton onClick={() => dispatch(toggleSidebar())}>
+          <Menu size={24} />
+        </MenuButton>
+        <Logo>ChromeToDo</Logo>
+      </LeftSection>
       <RightSection>
+        <IconButton onClick={handlePomodoroClick} title="番茄钟">
+          <Timer size={20} />
+        </IconButton>
+        <IconButton onClick={handleThemeToggle} title="切换主题">
+          {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+        </IconButton>
         <NetworkStatus />
-        <ThemeToggleButton onClick={handleToggleTheme}>
-          {theme === 'light' ? <HiMoon size={20} /> : <HiSun size={20} />}
-        </ThemeToggleButton>
       </RightSection>
     </HeaderContainer>
   );

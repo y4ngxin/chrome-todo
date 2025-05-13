@@ -31,7 +31,7 @@ interface UIState {
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
   sidebarWidth: 'normal' | 'collapsed';
-  currentView: 'myDay' | 'important' | 'planned' | 'list' | 'week';
+  currentView: 'myDay' | 'important' | 'planned' | 'list' | 'week' | 'pomodoro' | 'tags';
   backgroundImage?: string;
   weekViewDate: string; // ISO格式的日期字符串，用于确定当前显示的周
   pomodoro: PomodoroState; // 番茄钟状态

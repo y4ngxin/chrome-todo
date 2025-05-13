@@ -1,210 +1,288 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { useSelector } from 'react-redux';
-import { AppState, useAppDispatch } from '../utils/store';
-import { 
-  format, 
-  startOfWeek,
-  endOfWeek, 
-  eachDayOfInterval, 
-  isToday,
-  parseISO,
-  isSameDay
-} from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import { useSelector, useDispatch } from 'react-redux';
+import { AppState } from '../utils/store';
 import { nextWeek, previousWeek, goToCurrentWeek } from '../utils/slices/uiSlice';
+import { format, addDays, startOfWeek, parseISO, isSameDay } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 import { Todo } from '../utils/slices/todosSlice';
+import { HiChevronLeft, HiChevronRight, HiCalendar } from 'react-icons/hi';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
+import { reorderTodos } from '../utils/slices/todosSlice';
+
+interface WeekViewProps {
+  onTodoClick?: (todoId: string) => void;
+  date?: Date;
+}
 
 const WeekViewContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  padding: 0;
 `;
 
 const WeekHeader = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
-  border-bottom: 1px solid ${props => props.theme.borderColor};
+  justify-content: space-between;
+  margin-bottom: 16px;
 `;
 
 const WeekTitle = styled.h2`
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 18px;
+  font-weight: 500;
 `;
 
-const WeekNavigation = styled.div`
+const WeekControls = styled.div`
   display: flex;
-  align-items: center;
   gap: 8px;
 `;
 
-const NavButton = styled.button`
-  background: ${props => props.theme.buttonBackground};
-  color: ${props => props.theme.buttonText};
-  border: 1px solid ${props => props.theme.borderColor};
+const WeekButton = styled.button`
+  background: transparent;
+  border: none;
   border-radius: 4px;
   padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.theme.textColor};
   cursor: pointer;
   
   &:hover {
-    background: ${props => props.theme.buttonHoverBackground};
+    background-color: ${props => props.theme.hoverBackground};
   }
 `;
 
 const WeekGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  flex-grow: 1;
-  overflow-y: auto;
-  height: calc(100% - 50px);
+  gap: 8px;
+  
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(1, 1fr);
+  }
+`;
+
+const DayColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  background-color: ${props => props.theme.cardBackground};
+  border-radius: 8px;
+  overflow: hidden;
 `;
 
 const WeekDayHeader = styled.div<{ isToday: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background-color: ${props => props.isToday ? props.theme.primaryColor : props.theme.headerBackground};
+  color: ${props => props.isToday ? props.theme.textOnPrimary : props.theme.textColor};
   padding: 8px;
-  border-bottom: 1px solid ${props => props.theme.borderColor};
-  background-color: ${props => props.isToday ? props.theme.todayHighlight : 'transparent'};
-  
-  .day-name {
-    font-weight: ${props => props.isToday ? 'bold' : 'normal'};
-    font-size: 0.9rem;
-  }
-  
-  .day-number {
-    font-size: 1.2rem;
-    font-weight: ${props => props.isToday ? 'bold' : 'normal'};
-  }
+  text-align: center;
+  font-weight: 500;
 `;
 
-const DayColumn = styled.div<{ isToday: boolean }>`
-  min-height: 100%;
-  border-right: 1px solid ${props => props.theme.borderColor};
-  background-color: ${props => props.isToday ? props.theme.todayBackground : 'transparent'};
-
-  &:last-child {
-    border-right: none;
-  }
+const DayContent = styled.div`
+  flex-grow: 1;
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 300px;
 `;
 
 const TodoItem = styled.div<{ completed: boolean }>`
   padding: 8px;
-  margin: 8px;
+  margin-bottom: 8px;
+  background-color: ${props => props.theme.backgroundColor};
   border-radius: 4px;
-  background-color: ${props => props.theme.todoBackground};
-  border-left: 3px solid ${props => props.completed ? props.theme.completedColor : props.theme.accentColor};
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  opacity: ${props => props.completed ? 0.7 : 1};
-  text-decoration: ${props => props.completed ? 'line-through' : 'none'};
+  border-left: 3px solid ${props => props.completed ? props.theme.successColor : props.theme.primaryColor};
+  font-size: 14px;
   cursor: pointer;
+  text-decoration: ${props => props.completed ? 'line-through' : 'none'};
+  color: ${props => props.completed ? props.theme.textMuted : props.theme.textColor};
   
   &:hover {
-    background-color: ${props => props.theme.todoHoverBackground};
+    background-color: ${props => props.theme.hoverBackground};
   }
 `;
 
 const EmptyDayMessage = styled.div`
-  color: ${props => props.theme.textColorLight};
+  color: ${props => props.theme.textMuted};
   text-align: center;
   padding: 16px 8px;
-  font-size: 0.9rem;
+  font-size: 13px;
 `;
 
-interface WeekViewProps {
-  onTodoClick?: (todoId: string) => void;
-}
-
 const WeekView: React.FC<WeekViewProps> = ({ onTodoClick }) => {
-  const dispatch = useAppDispatch();
-  const { weekViewDate } = useSelector((state: AppState) => state.ui);
+  const dispatch = useDispatch();
+  const weekViewDate = useSelector((state: AppState) => state.ui.weekViewDate);
   const todos = useSelector((state: AppState) => state.todos.items);
   
-  // 计算当前显示的周的开始和结束日期
-  const currentDate = parseISO(weekViewDate);
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // 从周一开始
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+  // 计算一周的日期
+  const weekStart = startOfWeek(parseISO(weekViewDate), { locale: zhCN });
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
-  // 生成这一周的每一天
-  const daysOfWeek = useMemo(() => 
-    eachDayOfInterval({ start: weekStart, end: weekEnd }),
-    [weekStart, weekEnd]
-  );
+  // 处理下一周
+  const handleNextWeek = () => {
+    dispatch(nextWeek());
+  };
   
-  // 按天对待办事项进行分组
-  const todosByDay = useMemo(() => {
-    const grouped: { [key: string]: Todo[] } = {};
-    
-    // 初始化每一天的空数组
-    daysOfWeek.forEach(day => {
-      grouped[format(day, 'yyyy-MM-dd')] = [];
+  // 处理上一周
+  const handlePreviousWeek = () => {
+    dispatch(previousWeek());
+  };
+  
+  // 回到当前周
+  const handleCurrentWeek = () => {
+    dispatch(goToCurrentWeek());
+  };
+  
+  // 格式化日期显示
+  const formatDayHeader = (date: Date) => {
+    const dayName = format(date, 'E', { locale: zhCN });
+    const dayNumber = format(date, 'd');
+    return `${dayName} ${dayNumber}`;
+  };
+  
+  // 判断是否是今天
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return isSameDay(date, today);
+  };
+  
+  // 获取指定日期的待办事项
+  const getTodosForDay = (date: Date): Todo[] => {
+    return todos.filter((todo: Todo) => {
+      if (!todo.dueDate) return false;
+      return isSameDay(parseISO(todo.dueDate), date);
     });
+  };
+  
+  // 处理拖拽结束事件
+  const handleDragEnd = (result: DropResult) => {
+    // 如果拖拽到了列表外，则不做任何处理
+    if (!result.destination) {
+      return;
+    }
     
-    // 分配待办事项到对应的日期
-    todos.forEach(todo => {
-      if (todo.dueDate) {
-        const dueDate = format(parseISO(todo.dueDate), 'yyyy-MM-dd');
-        if (grouped[dueDate]) {
-          grouped[dueDate].push(todo);
+    // 获取源日期和目标日期
+    const [sourceDayIndex] = result.source.droppableId.split('-');
+    const [destinationDayIndex] = result.destination.droppableId.split('-');
+    
+    // 获取源日期和目标日期的 ISO 字符串
+    const sourceDay = weekDays[parseInt(sourceDayIndex)];
+    const destinationDay = weekDays[parseInt(destinationDayIndex)];
+    const sourceDayIso = sourceDay.toISOString().split('T')[0];
+    const destinationDayIso = destinationDay.toISOString().split('T')[0];
+    
+    // 获取源日期的待办事项
+    const sourceDayTodos = getTodosForDay(sourceDay);
+    const todo = sourceDayTodos[result.source.index];
+    
+    // 如果是同一天内的排序
+    if (sourceDayIndex === destinationDayIndex) {
+      dispatch(reorderTodos({
+        sourceIndex: result.source.index,
+        destinationIndex: result.destination.index,
+        listId: 'week',
+        sourceDayId: sourceDayIso,
+        destinationDayId: destinationDayIso
+      }));
+    } else {
+      // 跨天拖拽，更新任务的截止日期
+      if (todo) {
+        // 构建新的截止日期，保留原始时间部分
+        let newDueDate = destinationDayIso;
+        if (todo.dueDate && todo.dueDate.includes('T')) {
+          const timePart = todo.dueDate.split('T')[1];
+          newDueDate += `T${timePart}`;
+        } else {
+          newDueDate += `T00:00:00.000Z`;
         }
+        
+        dispatch(reorderTodos({
+          sourceIndex: result.source.index,
+          destinationIndex: result.destination.index,
+          listId: 'week',
+          sourceDayId: sourceDayIso,
+          destinationDayId: destinationDayIso,
+          todoId: todo.id,
+          newDueDate
+        }));
       }
-    });
-    
-    return grouped;
-  }, [todos, daysOfWeek]);
-  
-  // 处理导航
-  const handlePreviousWeek = () => dispatch(previousWeek());
-  const handleNextWeek = () => dispatch(nextWeek());
-  const handleCurrentWeek = () => dispatch(goToCurrentWeek());
-  
-  // 格式化周标题
-  const weekTitle = `${format(weekStart, 'yyyy年MM月dd日', { locale: zhCN })} - ${format(weekEnd, 'MM月dd日', { locale: zhCN })}`;
+    }
+  };
   
   return (
     <WeekViewContainer>
       <WeekHeader>
-        <WeekTitle>{weekTitle}</WeekTitle>
-        <WeekNavigation>
-          <NavButton onClick={handlePreviousWeek}>上一周</NavButton>
-          <NavButton onClick={handleCurrentWeek}>本周</NavButton>
-          <NavButton onClick={handleNextWeek}>下一周</NavButton>
-        </WeekNavigation>
+        <WeekTitle>周视图</WeekTitle>
+        <WeekControls>
+          <WeekButton onClick={handlePreviousWeek} title="上一周">
+            <HiChevronLeft size={20} />
+          </WeekButton>
+          <WeekButton onClick={handleCurrentWeek} title="回到本周">
+            <HiCalendar size={18} />
+          </WeekButton>
+          <WeekButton onClick={handleNextWeek} title="下一周">
+            <HiChevronRight size={20} />
+          </WeekButton>
+        </WeekControls>
       </WeekHeader>
       
-      <WeekGrid>
-        {daysOfWeek.map(day => {
-          const dateStr = format(day, 'yyyy-MM-dd');
-          const dayTodos = todosByDay[dateStr] || [];
-          const dayIsToday = isToday(day);
-          
-          return (
-            <DayColumn key={dateStr} isToday={dayIsToday}>
-              <WeekDayHeader isToday={dayIsToday}>
-                <span className="day-name">{format(day, 'EEE', { locale: zhCN })}</span>
-                <span className="day-number">{format(day, 'd')}</span>
-              </WeekDayHeader>
-              
-              {dayTodos.length > 0 ? (
-                dayTodos.map(todo => (
-                  <TodoItem 
-                    key={todo.id} 
-                    completed={todo.completed}
-                    onClick={() => onTodoClick && onTodoClick(todo.id)}
-                  >
-                    {todo.title}
-                  </TodoItem>
-                ))
-              ) : (
-                <EmptyDayMessage>无待办事项</EmptyDayMessage>
-              )}
-            </DayColumn>
-          );
-        })}
-      </WeekGrid>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <WeekGrid>
+          {weekDays.map((day, dayIndex) => {
+            const dayTodos = getTodosForDay(day);
+            const todayClass = isToday(day) ? 'today' : '';
+            
+            return (
+              <DayColumn key={dayIndex}>
+                <WeekDayHeader isToday={isToday(day)}>
+                  {formatDayHeader(day)}
+                </WeekDayHeader>
+                
+                <Droppable droppableId={`${dayIndex}-drop`}>
+                  {(provided: DroppableProvided) => (
+                    <DayContent
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                    >
+                      {dayTodos.length === 0 ? (
+                        <EmptyDayMessage>无待办事项</EmptyDayMessage>
+                      ) : (
+                        dayTodos.map((todo: Todo, todoIndex: number) => (
+                          <Draggable
+                            key={todo.id}
+                            draggableId={todo.id}
+                            index={todoIndex}
+                          >
+                            {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+                              <TodoItem
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                completed={todo.completed}
+                                style={{
+                                  ...provided.draggableProps.style,
+                                  opacity: snapshot.isDragging ? 0.7 : 1
+                                }}
+                                onClick={() => onTodoClick && onTodoClick(todo.id)}
+                              >
+                                {todo.title}
+                              </TodoItem>
+                            )}
+                          </Draggable>
+                        ))
+                      )}
+                      {provided.placeholder}
+                    </DayContent>
+                  )}
+                </Droppable>
+              </DayColumn>
+            );
+          })}
+        </WeekGrid>
+      </DragDropContext>
     </WeekViewContainer>
   );
 };

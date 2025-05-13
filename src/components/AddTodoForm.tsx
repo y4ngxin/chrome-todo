@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { v4 as uuidv4 } from 'uuid';
 import { useAppDispatch, AppState } from '../utils/store';
 import { addTodo } from '../utils/slices/todosSlice';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useSelector } from 'react-redux';
 import { HiOutlineFlag } from 'react-icons/hi';
@@ -92,27 +92,61 @@ const FormField = styled.div`
 
 const DatePickerContainer = styled.div`
   margin-top: 8px;
+`;
+
+const DateRow = styled.div`
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 `;
 
 const DateLabel = styled.label`
-  margin-bottom: 4px;
   color: ${props => props.theme.textMuted};
   font-size: 14px;
+  white-space: nowrap;
 `;
 
 const DateInput = styled.input`
-  padding: 8px;
+  padding: 6px 8px;
   border: 1px solid ${props => props.theme.borderColor};
   border-radius: 4px;
   background-color: ${props => props.theme.inputBackground};
   color: ${props => props.theme.textColor};
   font-size: 14px;
+  flex: 0 0 auto;
+  width: 130px;
   
   &:focus {
     border-color: ${props => props.theme.primaryColor};
     outline: none;
+  }
+`;
+
+const DateShortcuts = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+`;
+
+const DateShortcutButton = styled.button`
+  background-color: transparent;
+  color: ${props => props.theme.textColor};
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: ${props => props.theme.hoverBackground};
+    border-color: ${props => props.theme.primaryColor};
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: ${props => props.theme.primaryColor};
   }
 `;
 
@@ -247,6 +281,30 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
     setPriority(prev => prev === newPriority ? undefined : newPriority);
   };
   
+  const handleDateShortcut = (shortcut: 'today' | 'tomorrow' | 'nextWeek' | 'nextWeekend' | 'clear') => {
+    switch (shortcut) {
+      case 'today':
+        setDueDate(format(new Date(), 'yyyy-MM-dd'));
+        break;
+      case 'tomorrow':
+        setDueDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+        break;
+      case 'nextWeek':
+        setDueDate(format(addDays(new Date(), 7), 'yyyy-MM-dd'));
+        break;
+      case 'nextWeekend':
+        // 获取下一个周六
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 是周日，6 是周六
+        const daysUntilSaturday = dayOfWeek === 6 ? 7 : 6 - dayOfWeek;
+        setDueDate(format(addDays(today, daysUntilSaturday), 'yyyy-MM-dd'));
+        break;
+      case 'clear':
+        setDueDate('');
+        break;
+    }
+  };
+  
   return (
     <FormContainer onSubmit={handleSubmit}>
       <InputGroup>
@@ -301,13 +359,47 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
       
       {showDatePicker && (
         <DatePickerContainer>
-          <DateLabel>截止日期</DateLabel>
-          <DateInput
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            min={format(new Date(), 'yyyy-MM-dd')}
-          />
+          <DateRow>
+            <DateLabel>截止日期:</DateLabel>
+            <DateInput
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              min={format(new Date(), 'yyyy-MM-dd')}
+            />
+            <DateShortcuts>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('today')}
+              >
+                今天
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('tomorrow')}
+              >
+                明天
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('nextWeek')}
+              >
+                下周
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('nextWeekend')}
+              >
+                周末
+              </DateShortcutButton>
+              <DateShortcutButton 
+                type="button" 
+                onClick={() => handleDateShortcut('clear')}
+              >
+                清除
+              </DateShortcutButton>
+            </DateShortcuts>
+          </DateRow>
         </DatePickerContainer>
       )}
       
