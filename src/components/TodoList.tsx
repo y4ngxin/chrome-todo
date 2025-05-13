@@ -32,30 +32,31 @@ const EmptyStateText = styled.p`
 interface TodoListProps {
   listId?: string;  // 当前显示的列表ID，如果为空则显示所有
   filter?: 'all' | 'completed' | 'active' | 'important' | 'myDay';  // 过滤条件
+  onTodoClick?: (todoId: string) => void; // 点击任务的回调函数
 }
 
-const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all' }) => {
+const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all', onTodoClick }) => {
   const todos = useSelector((state: AppState) => state.todos.items);
   const currentView = useSelector((state: AppState) => state.ui.currentView);
   
   // 根据当前视图和过滤条件筛选待办事项
   const filteredTodos = todos.filter((todo: TodoType) => {
-    // 根据当前视图筛选
-    if (currentView === 'myDay' && !todo.isMyDay) {
-      return false;
+    // 特殊视图处理
+    if (listId === 'myDay') {
+      return todo.isMyDay;
     }
     
-    if (currentView === 'important' && !todo.isImportant) {
-      return false;
+    if (listId === 'important') {
+      return todo.isImportant;
     }
     
-    if (currentView === 'planned' && !todo.dueDate) {
-      return false;
+    if (listId === 'planned') {
+      return !!todo.dueDate;
     }
     
-    // 如果指定了列表ID，则只显示该列表下的待办事项
-    if (listId && todo.listId !== listId) {
-      return false;
+    // 如果是自定义列表
+    if (listId && !['myDay', 'important', 'planned', 'week'].includes(listId)) {
+      return todo.listId === listId;
     }
     
     // 根据过滤条件筛选
@@ -103,7 +104,13 @@ const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all' }) => {
   return (
     <TodoListContainer>
       {sortedTodos.map((todo: TodoType) => (
-        <Todo key={todo.id} todo={todo} />
+        <Todo 
+          key={todo.id} 
+          todo={todo} 
+          onClick={() => {
+            onTodoClick && onTodoClick(todo.id);
+          }}
+        />
       ))}
     </TodoListContainer>
   );

@@ -114,7 +114,11 @@ const EmptyDayMessage = styled.div`
   font-size: 0.9rem;
 `;
 
-const WeekView: React.FC = () => {
+interface WeekViewProps {
+  onTodoClick?: (todoId: string) => void;
+}
+
+const WeekView: React.FC<WeekViewProps> = ({ onTodoClick }) => {
   const dispatch = useAppDispatch();
   const { weekViewDate } = useSelector((state: AppState) => state.ui);
   const todos = useSelector((state: AppState) => state.todos.items);
@@ -186,7 +190,11 @@ const WeekView: React.FC = () => {
               
               {dayTodos.length > 0 ? (
                 dayTodos.map(todo => (
-                  <TodoItem key={todo.id} completed={todo.completed}>
+                  <TodoItem 
+                    key={todo.id} 
+                    completed={todo.completed}
+                    onClick={() => onTodoClick && onTodoClick(todo.id)}
+                  >
                     {todo.title}
                   </TodoItem>
                 ))

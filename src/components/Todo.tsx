@@ -48,6 +48,7 @@ const Checkbox = styled.div<{ checked: boolean }>`
 
 const TodoContent = styled.div`
   flex-grow: 1;
+  cursor: pointer;
 `;
 
 const TodoTitle = styled.div<{ completed: boolean }>`
@@ -97,9 +98,10 @@ const ActionButton = styled.button`
 
 interface TodoProps {
   todo: TodoType;
+  onClick?: () => void;
 }
 
-const Todo: React.FC<TodoProps> = ({ todo }) => {
+const Todo: React.FC<TodoProps> = ({ todo, onClick }) => {
   const dispatch = useAppDispatch();
   const [isHovered, setIsHovered] = useState(false);
   
@@ -144,31 +146,56 @@ const Todo: React.FC<TodoProps> = ({ todo }) => {
     );
   };
   
+  // 处理点击内容区域
+  const handleContentClick = (e: React.MouseEvent) => {
+    // 阻止事件冒泡，以免触发整个容器的点击事件
+    e.stopPropagation();
+    if (onClick) onClick();
+  };
+  
+  // 阻止按钮点击传播
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+  
   return (
     <TodoContainer 
       completed={todo.completed}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onClick && onClick()}
     >
       <Checkbox 
         checked={todo.completed} 
-        onClick={handleToggleCompleted}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggleCompleted();
+        }}
       />
-      <TodoContent>
+      <TodoContent onClick={handleContentClick}>
         <TodoTitle completed={todo.completed}>{todo.title}</TodoTitle>
         <TodoMetadata>
           {formatDueDate()}
         </TodoMetadata>
       </TodoContent>
-      <TodoActions>
-        <ActionButton onClick={handleToggleMyDay}>
+      <TodoActions onClick={handleButtonClick}>
+        <ActionButton onClick={(e) => {
+          e.stopPropagation();
+          handleToggleMyDay();
+        }}>
           {todo.isMyDay ? <HiSun size={18} color="#debd16" /> : <HiOutlineSun size={18} />}
         </ActionButton>
-        <ActionButton onClick={handleToggleImportant}>
+        <ActionButton onClick={(e) => {
+          e.stopPropagation();
+          handleToggleImportant();
+        }}>
           {todo.isImportant ? <HiStar size={18} color="#debd16" /> : <HiOutlineStar size={18} />}
         </ActionButton>
         {isHovered && (
-          <ActionButton onClick={handleRemove}>
+          <ActionButton onClick={(e) => {
+            e.stopPropagation();
+            handleRemove();
+          }}>
             <HiOutlineTrash size={18} />
           </ActionButton>
         )}

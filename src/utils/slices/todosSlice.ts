@@ -39,6 +39,7 @@ export const fetchTodos = createAsyncThunk(
   'todos/fetchTodos',
   async () => {
     const todos = await storageService.getTodos();
+    // console.log('Fetched todos from storage:', todos);
     return todos.length > 0 ? todos : sampleTodos;
   }
 );
@@ -46,6 +47,7 @@ export const fetchTodos = createAsyncThunk(
 export const saveTodos = createAsyncThunk(
   'todos/saveTodos',
   async (todos: Todo[]) => {
+    // console.log('Saving todos to storage:', todos);
     await storageService.setTodos(todos);
     return todos;
   }
@@ -82,7 +84,19 @@ export const todosSlice = createSlice({
     updateTodo: (state, action: PayloadAction<Partial<Todo> & { id: string }>) => {
       const index = state.items.findIndex(todo => todo.id === action.payload.id);
       if (index !== -1) {
-        state.items[index] = { ...state.items[index], ...action.payload };
+        // 确保保留原始字段，防止数据丢失
+        const originalTodo = state.items[index];
+        
+        // 只更新特定字段，避免意外覆盖
+        state.items[index] = {
+          ...originalTodo,
+          title: action.payload.title !== undefined ? action.payload.title : originalTodo.title,
+          isMyDay: action.payload.isMyDay !== undefined ? action.payload.isMyDay : originalTodo.isMyDay,
+          isImportant: action.payload.isImportant !== undefined ? action.payload.isImportant : originalTodo.isImportant,
+          dueDate: action.payload.dueDate !== undefined ? action.payload.dueDate : originalTodo.dueDate,
+          notes: action.payload.notes !== undefined ? action.payload.notes : originalTodo.notes,
+          steps: action.payload.steps !== undefined ? action.payload.steps : originalTodo.steps
+        };
       }
     },
     addStep: (state, action: PayloadAction<{ todoId: string; step: TodoStep }>) => {

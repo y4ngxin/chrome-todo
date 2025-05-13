@@ -6,16 +6,21 @@ export const STORAGE_KEYS = {
   TODOS: 'todos',
   LISTS: 'lists',
   SETTINGS: 'settings',
-};
+} as const;
 
 // 存储接口
 export interface StorageData {
   [STORAGE_KEYS.TODOS]?: Todo[];
   [STORAGE_KEYS.LISTS]?: TodoList[];
-  [STORAGE_KEYS.SETTINGS]?: {
-    theme: 'light' | 'dark';
-    sidebarWidth: 'normal' | 'collapsed';
-  };
+  [STORAGE_KEYS.SETTINGS]?: UISettings;
+}
+
+// UI设置类型
+export interface UISettings {
+  theme: 'light' | 'dark';
+  sidebarWidth: 'normal' | 'collapsed';
+  currentView?: 'myDay' | 'important' | 'planned' | 'list' | 'week';
+  weekViewDate?: string;
 }
 
 // 获取所有存储数据
@@ -66,17 +71,11 @@ export const setLists = (lists: TodoList[]): Promise<void> => {
 };
 
 // 获取设置
-export const getSettings = (): Promise<{
-  theme: 'light' | 'dark';
-  sidebarWidth: 'normal' | 'collapsed';
-} | undefined> => {
+export const getSettings = (): Promise<UISettings | undefined> => {
   return getData(STORAGE_KEYS.SETTINGS);
 };
 
 // 保存设置
-export const setSettings = (settings: {
-  theme: 'light' | 'dark';
-  sidebarWidth: 'normal' | 'collapsed';
-}): Promise<void> => {
+export const setSettings = (settings: UISettings): Promise<void> => {
   return setData(STORAGE_KEYS.SETTINGS, settings);
 }; 

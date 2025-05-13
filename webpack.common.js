@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   entry: {
     popup: path.resolve('src/popup/index.tsx'),
+    options: path.resolve('src/options.js'),
     background: path.resolve('src/background/index.ts'),
     content: path.resolve('src/content/index.ts'),
   },
@@ -48,16 +49,15 @@ module.exports = {
           from: path.resolve('src/assets'), 
           to: path.resolve('dist/assets') 
         },
+        {
+          from: path.resolve('src/options.html'),
+          to: path.resolve('dist/options.html')
+        }
       ],
     }),
     new HtmlWebpackPlugin({
       template: path.resolve('src/popup/index.html'),
       filename: 'popup.html',
-      chunks: ['popup'],
-    }),
-    new HtmlWebpackPlugin({
-      template: path.resolve('src/options/index.html'),
-      filename: 'options.html',
       chunks: ['popup'],
     }),
   ],

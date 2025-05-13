@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import styled, { ThemeProvider } from 'styled-components';
 import { AppState, useAppDispatch } from '../utils/store';
@@ -11,6 +11,7 @@ import TodoList from './TodoList';
 import WeekView from './WeekView';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import TodoDetail from './TodoDetail';
 
 interface AppContainerProps {
   sidebarWidth: string;
@@ -18,15 +19,27 @@ interface AppContainerProps {
 
 const AppContainer = styled.div<AppContainerProps>`
   display: flex;
-  width: 800px;
-  height: 600px;
+  width: 372px;
+  height: 653px;
   overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   
-  @media (max-width: 840px) {
+  @media (min-width: 800px) {
+    width: 800px;
+    height: 700px;
+  }
+  
+  @media (min-width: 1200px) {
+    width: 1000px;
+    height: 800px;
+  }
+  
+  @media (max-width: 372px) {
     width: 100%;
     height: 100%;
+    border: none;
   }
 `;
 
@@ -65,6 +78,9 @@ const App: React.FC = () => {
   const listsStatus = useSelector((state: AppState) => state.lists.status);
   const currentTheme = theme === 'light' ? lightTheme : darkTheme;
   
+  // 当前查看的任务详情ID
+  const [activeTodoId, setActiveTodoId] = useState<string | null>(null);
+  
   // 加载数据
   useEffect(() => {
     // 初始化时加载设置
@@ -96,16 +112,32 @@ const App: React.FC = () => {
     );
   }
 
+  // 处理打开任务详情
+  const handleOpenTodoDetail = (todoId: string) => {
+    // 防止快速点击导致的问题
+    if (activeTodoId === todoId) return;
+    
+    setActiveTodoId(todoId);
+  };
+  
+  // 处理关闭任务详情
+  const handleCloseTodoDetail = () => {
+    setActiveTodoId(null);
+  };
+  
   // 根据当前视图显示不同内容
   const renderContent = () => {
     if (currentView === 'week') {
-      return <WeekView />;
+      return <WeekView onTodoClick={handleOpenTodoDetail} />;
     }
     
     return (
       <>
         <AddTodoForm listId={activeListId || undefined} />
-        <TodoList listId={activeListId || currentView} />
+        <TodoList 
+          listId={activeListId || currentView} 
+          onTodoClick={handleOpenTodoDetail}
+        />
       </>
     );
   };
@@ -121,9 +153,14 @@ const App: React.FC = () => {
             {renderContent()}
           </Content>
         </MainContent>
+        <TodoDetail 
+          todoId={activeTodoId} 
+          onClose={handleCloseTodoDetail} 
+          key={activeTodoId || 'no-todo'} 
+        />
       </AppContainer>
     </ThemeProvider>
   );
 };
 
-export default App; 
+export default App;

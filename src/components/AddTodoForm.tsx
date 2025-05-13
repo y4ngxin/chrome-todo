@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { v4 as uuidv4 } from 'uuid';
 import { useAppDispatch, AppState } from '../utils/store';
@@ -123,12 +123,26 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
   const dispatch = useAppDispatch();
   const lists = useSelector((state: AppState) => state.lists.items);
   const activeListId = useSelector((state: AppState) => state.lists.activeListId);
+  const currentView = useSelector((state: AppState) => state.ui.currentView);
   
   const [title, setTitle] = useState('');
   const [isMyDay, setIsMyDay] = useState(false);
   const [isImportant, setIsImportant] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  // 根据当前视图自动设置一些属性
+  useEffect(() => {
+    // 如果当前视图是"我的一天"，则自动设置isMyDay为true
+    if (currentView === 'myDay') {
+      setIsMyDay(true);
+    }
+    
+    // 如果当前视图是"重要"，则自动设置isImportant为true
+    if (currentView === 'important') {
+      setIsImportant(true);
+    }
+  }, [currentView]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,8 +167,13 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
     
     // 重置表单
     setTitle('');
-    setIsMyDay(false);
-    setIsImportant(false);
+    // 如果当前视图是特定类型，则不重置对应的状态
+    if (currentView !== 'myDay') {
+      setIsMyDay(false);
+    }
+    if (currentView !== 'important') {
+      setIsImportant(false);
+    }
     setDueDate('');
     setShowDatePicker(false);
   };

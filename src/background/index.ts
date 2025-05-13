@@ -1,5 +1,11 @@
 // 后台服务脚本
-let optionsTabId: number | null = null;
+let todoTabId: number | null = null;
+const TODO_PAGE_URL = 'popup.html';
+
+// 设置扩展图标点击事件
+chrome.action.onClicked.addListener(() => {
+  openTodoPage();
+});
 
 // 监听扩展安装或更新
 chrome.runtime.onInstalled.addListener(() => {
@@ -20,26 +26,14 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // 处理打开选项页面的消息
   if (message.action === 'openOptionsPage') {
-    // 检查选项页面是否已经打开
-    if (optionsTabId !== null) {
-      // 如果已经打开，则切换到该标签页并激活它
-      chrome.tabs.get(optionsTabId, (tab) => {
-        if (chrome.runtime.lastError) {
-          // 如果获取标签页失败（可能已关闭），则创建新的标签页
-          createOptionsTab();
-        } else if (tab) {
-          // 如果标签页存在，则激活它
-          chrome.tabs.update(optionsTabId as number, { active: true });
-          if (tab.windowId) {
-            chrome.windows.update(tab.windowId, { focused: true });
-          }
-        }
-      });
-    } else {
-      // 如果没有打开，则创建新的标签页
-      createOptionsTab();
-    }
-    
+    chrome.runtime.openOptionsPage();
+    sendResponse({ success: true });
+    return true;
+  }
+  
+  // 处理打开待办事项页面的消息
+  if (message.action === 'openTodoPage') {
+    openTodoPage();
     sendResponse({ success: true });
     return true;
   }
@@ -47,18 +41,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // 监听标签页关闭事件
 chrome.tabs.onRemoved.addListener((tabId) => {
-  // 如果关闭的是选项页面，则重置选项页面ID
-  if (tabId === optionsTabId) {
-    optionsTabId = null;
+  // 如果关闭的是待办事项页面，则重置页面ID
+  if (tabId === todoTabId) {
+    todoTabId = null;
   }
 });
 
-// 创建选项页面标签页
-function createOptionsTab() {
-  chrome.tabs.create({ url: 'options.html' }, (tab) => {
-    // 存储新创建的标签页ID
-    if (tab && tab.id) {
-      optionsTabId = tab.id;
+// 打开待办事项页面
+function openTodoPage() {
+  // 检查待办事项页面是否已经打开
+  if (todoTabId !== null) {
+    // 如果已经打开，则切换到该标签页并激活它
+    chrome.tabs.get(todoTabId, (tab) => {
+      if (chrome.runtime.lastError) {
+        // 如果获取标签页失败（可能已关闭），则创建新的标签页
+        createTodoTab();
+      } else if (tab) {
+        // 如果标签页存在，则激活它
+        chrome.tabs.update(todoTabId as number, { active: true });
+        if (tab.windowId) {
+          chrome.windows.update(tab.windowId, { focused: true });
+        }
+      }
+    });
+  } else {
+    // 如果没有打开，则创建新的标签页
+    createTodoTab();
+  }
+}
+
+// 创建待办事项标签页
+function createTodoTab() {
+  // 创建一个新窗口，大小为372x653
+  chrome.windows.create({
+    url: TODO_PAGE_URL,
+    type: 'popup',
+    width: 372,
+    height: 653,
+    focused: true
+  }, (window) => {
+    if (window && window.tabs && window.tabs.length > 0) {
+      todoTabId = window.tabs[0].id || null;
     }
   });
 }
@@ -77,9 +100,6 @@ function initStorage() {
   });
 }
 
-// 初始化存储
-initStorage();
-
 // 处理右键菜单点击
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'addToTodo') {
@@ -95,12 +115,22 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
           title: selectedText,
           completed: false,
           createdAt: new Date().toISOString(),
-          listId: 'default'
+          listId: 'default',
+          isImportant: false,
+          isMyDay: true
         };
         
         chrome.storage.local.set({
           todos: [...todos, newTodo]
         });
+        
+        // 如果待办事项页面已经打开，则通知它刷新数据
+        if (todoTabId !== null) {
+          chrome.tabs.sendMessage(todoTabId, { action: 'refreshTodos' });
+        } else {
+          // 打开待办事项页面
+          openTodoPage();
+        }
       });
     }
   }

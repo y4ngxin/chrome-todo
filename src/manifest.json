@@ -9,7 +9,6 @@
     "128": "assets/icon128.png"
   },
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "assets/icon16.png",
       "48": "assets/icon48.png",
@@ -31,5 +30,8 @@
       "js": ["content.js"]
     }
   ],
-  "options_page": "popup.html"
+  "options_page": "options.html",
+  "chrome_url_overrides": {
+    "newtab": "popup.html"
+  }
 } 
