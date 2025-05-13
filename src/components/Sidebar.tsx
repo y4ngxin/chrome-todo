@@ -1,11 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../utils/store';
+import { useSelector } from 'react-redux';
+import { AppState, useAppDispatch } from '../utils/store';
 import { setActiveList } from '../utils/slices/listsSlice';
-import { toggleSidebarWidth, setSidebarWidth } from '../utils/slices/uiSlice';
+import { toggleSidebarWidth, setSidebarWidth, setCurrentView } from '../utils/slices/uiSlice';
 import { TodoList } from '../utils/slices/listsSlice';
 import AddListForm from './AddListForm';
+import { 
+  HiOutlineCalendar,
+  HiSun, 
+  HiStar, 
+  HiCalendar
+} from 'react-icons/hi';
 
 interface SidebarContainerProps {
   isCollapsed: boolean;
@@ -118,11 +124,39 @@ const Backdrop = styled.div`
   z-index: 5;
 `;
 
+const DefaultItems = [
+  {
+    id: 'myDay',
+    name: '我的一天',
+    icon: <HiSun size={20} />,
+    color: '#058527'
+  },
+  {
+    id: 'important',
+    name: '重要',
+    icon: <HiStar size={20} />,
+    color: '#721d7c'
+  },
+  {
+    id: 'planned',
+    name: '计划内',
+    icon: <HiCalendar size={20} />,
+    color: '#5a32a3'
+  },
+  {
+    id: 'week',
+    name: '周视图',
+    icon: <HiOutlineCalendar size={20} />,
+    color: '#0062b1'
+  }
+];
+
 const Sidebar: React.FC = () => {
-  const dispatch = useDispatch();
-  const lists = useSelector((state: RootState) => state.lists.items);
-  const activeListId = useSelector((state: RootState) => state.lists.activeListId);
-  const sidebarWidth = useSelector((state: RootState) => state.ui.sidebarWidth);
+  const dispatch = useAppDispatch();
+  const lists = useSelector((state: AppState) => state.lists.items);
+  const activeListId = useSelector((state: AppState) => state.lists.activeListId);
+  const sidebarWidth = useSelector((state: AppState) => state.ui.sidebarWidth);
+  const currentView = useSelector((state: AppState) => state.ui.currentView);
   const isCollapsed = sidebarWidth === 'collapsed';
   
   const [showAddListForm, setShowAddListForm] = useState(false);
@@ -164,11 +198,32 @@ const Sidebar: React.FC = () => {
     };
   }, [showAddListForm]);
   
+  // 处理默认导航项点击
+  const handleItemClick = (id: string) => {
+    // 设置当前视图
+    dispatch(setCurrentView(id as any));
+    
+    // 重置活动列表选择
+    if (id !== 'list') {
+      dispatch(setActiveList(null));
+    }
+    
+    // 在小屏幕上点击后自动收缩边栏
+    if (windowWidth < 600) {
+      dispatch(setSidebarWidth('collapsed'));
+    }
+  };
+  
+  // 处理列表项点击
   const handleListClick = (listId: string) => {
+    // 设置活动列表
     dispatch(setActiveList(listId));
     
+    // 设置当前视图为列表
+    dispatch(setCurrentView('list'));
+    
     // 在小屏幕上点击列表后自动收缩边栏
-    if (window.innerWidth < 600) {
+    if (windowWidth < 600) {
       dispatch(setSidebarWidth('collapsed'));
     }
   };
@@ -197,36 +252,36 @@ const Sidebar: React.FC = () => {
         
         <NavSection>
           <NavItem 
-            active={activeListId === 'my-day'} 
-            onClick={() => handleListClick('my-day')}
+            active={currentView === 'myDay'} 
+            onClick={() => handleItemClick('myDay')}
             isCollapsed={isCollapsed}
           >
             <NavIcon className={isCollapsed ? 'collapsed' : ''}>☀️</NavIcon>
             <NavText isCollapsed={isCollapsed}>我的一天</NavText>
           </NavItem>
           <NavItem 
-            active={activeListId === 'important'}
-            onClick={() => handleListClick('important')}
+            active={currentView === 'important'}
+            onClick={() => handleItemClick('important')}
             isCollapsed={isCollapsed}
           >
             <NavIcon className={isCollapsed ? 'collapsed' : ''}>⭐</NavIcon>
             <NavText isCollapsed={isCollapsed}>重要</NavText>
           </NavItem>
           <NavItem 
-            active={activeListId === 'planned'}
-            onClick={() => handleListClick('planned')}
+            active={currentView === 'planned'}
+            onClick={() => handleItemClick('planned')}
             isCollapsed={isCollapsed}
           >
             <NavIcon className={isCollapsed ? 'collapsed' : ''}>📅</NavIcon>
             <NavText isCollapsed={isCollapsed}>计划内</NavText>
           </NavItem>
           <NavItem 
-            active={!activeListId || activeListId === 'all'}
-            onClick={() => handleListClick('all')}
+            active={currentView === 'week'}
+            onClick={() => handleItemClick('week')}
             isCollapsed={isCollapsed}
           >
-            <NavIcon className={isCollapsed ? 'collapsed' : ''}>📝</NavIcon>
-            <NavText isCollapsed={isCollapsed}>所有任务</NavText>
+            <NavIcon className={isCollapsed ? 'collapsed' : ''}>📅</NavIcon>
+            <NavText isCollapsed={isCollapsed}>周视图</NavText>
           </NavItem>
         </NavSection>
         
@@ -236,10 +291,10 @@ const Sidebar: React.FC = () => {
             <AddListButton onClick={handleAddListClick} title="添加新列表">+</AddListButton>
           </ListsHeader>
           
-          {lists.map((list: TodoList) => (
+          {lists.map(list => (
             <NavItem 
               key={list.id}
-              active={activeListId === list.id}
+              active={activeListId === list.id && currentView === 'list'}
               onClick={() => handleListClick(list.id)}
               isCollapsed={isCollapsed}
             >

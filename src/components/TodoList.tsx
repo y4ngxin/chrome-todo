@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
-import { RootState } from '../utils/store';
+import { AppState } from '../utils/store';
 import Todo from './Todo';
 import { Todo as TodoType } from '../utils/slices/todosSlice';
 
@@ -35,10 +35,24 @@ interface TodoListProps {
 }
 
 const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all' }) => {
-  const todos = useSelector((state: RootState) => state.todos.items);
+  const todos = useSelector((state: AppState) => state.todos.items);
+  const currentView = useSelector((state: AppState) => state.ui.currentView);
   
-  // 根据当前列表和过滤条件筛选待办事项
+  // 根据当前视图和过滤条件筛选待办事项
   const filteredTodos = todos.filter((todo: TodoType) => {
+    // 根据当前视图筛选
+    if (currentView === 'myDay' && !todo.isMyDay) {
+      return false;
+    }
+    
+    if (currentView === 'important' && !todo.isImportant) {
+      return false;
+    }
+    
+    if (currentView === 'planned' && !todo.dueDate) {
+      return false;
+    }
+    
     // 如果指定了列表ID，则只显示该列表下的待办事项
     if (listId && todo.listId !== listId) {
       return false;
@@ -61,6 +75,16 @@ const TodoList: React.FC<TodoListProps> = ({ listId, filter = 'all' }) => {
   
   // 按创建时间排序，最新的在前面
   const sortedTodos = [...filteredTodos].sort((a, b) => {
+    // 如果有截止日期，按照截止日期排序
+    if (a.dueDate && b.dueDate) {
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    }
+    
+    // 如果只有一个有截止日期，有截止日期的排前面
+    if (a.dueDate && !b.dueDate) return -1;
+    if (!a.dueDate && b.dueDate) return 1;
+    
+    // 否则按创建时间排序，最新的在前面
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
   

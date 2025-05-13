@@ -1,12 +1,15 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import * as storageService from '../storage';
+import { startOfWeek, format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 
 interface UIState {
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
   sidebarWidth: 'normal' | 'collapsed';
-  currentView: 'myDay' | 'important' | 'planned' | 'list';
+  currentView: 'myDay' | 'important' | 'planned' | 'list' | 'week';
   backgroundImage?: string;
+  weekViewDate: string; // ISO格式的日期字符串，用于确定当前显示的周
 }
 
 const initialState: UIState = {
@@ -14,6 +17,7 @@ const initialState: UIState = {
   sidebarOpen: true,
   sidebarWidth: 'normal',
   currentView: 'myDay',
+  weekViewDate: format(new Date(), 'yyyy-MM-dd') // 默认为今天
 };
 
 // 异步 Thunks
@@ -58,6 +62,26 @@ export const uiSlice = createSlice({
     setBackgroundImage: (state, action: PayloadAction<string | undefined>) => {
       state.backgroundImage = action.payload;
     },
+    // 新增的周视图相关操作
+    setWeekViewDate: (state, action: PayloadAction<string>) => {
+      state.weekViewDate = action.payload;
+    },
+    nextWeek: (state) => {
+      // 将当前周视图日期加7天
+      const currentDate = new Date(state.weekViewDate);
+      currentDate.setDate(currentDate.getDate() + 7);
+      state.weekViewDate = format(currentDate, 'yyyy-MM-dd');
+    },
+    previousWeek: (state) => {
+      // 将当前周视图日期减7天
+      const currentDate = new Date(state.weekViewDate);
+      currentDate.setDate(currentDate.getDate() - 7);
+      state.weekViewDate = format(currentDate, 'yyyy-MM-dd');
+    },
+    goToCurrentWeek: (state) => {
+      // 回到当前周
+      state.weekViewDate = format(new Date(), 'yyyy-MM-dd');
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -80,7 +104,11 @@ export const {
   toggleSidebarWidth,
   setSidebarWidth,
   setCurrentView,
-  setBackgroundImage
+  setBackgroundImage,
+  setWeekViewDate,
+  nextWeek,
+  previousWeek,
+  goToCurrentWeek
 } = uiSlice.actions;
 
 export default uiSlice.reducer; 

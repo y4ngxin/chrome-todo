@@ -58,7 +58,7 @@ export const listsSlice = createSlice({
         state.items[index] = { ...state.items[index], ...action.payload };
       }
     },
-    setActiveList: (state, action: PayloadAction<string>) => {
+    setActiveList: (state, action: PayloadAction<string | null>) => {
       state.activeListId = action.payload;
     },
     setLists: (state, action: PayloadAction<TodoList[]>) => {

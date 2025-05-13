@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
+import { useAppDispatch, AppState } from '../utils/store';
 import { addTodo } from '../utils/slices/todosSlice';
-import { RootState } from '../utils/store';
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+import { useSelector } from 'react-redux';
 
 const FormContainer = styled.form`
   display: flex;
@@ -82,17 +84,34 @@ const OptionButton = styled.button<{ active?: boolean }>`
   }
 `;
 
+const FormField = styled.div`
+  margin-bottom: 10px;
+  width: 100%;
+`;
+
+const DatePickerContainer = styled.div`
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const DateLabel = styled.label`
+  margin-bottom: 4px;
+  color: ${props => props.theme.textMuted};
+  font-size: 14px;
+`;
+
 const DateInput = styled.input`
-  padding: 6px 8px;
+  padding: 8px;
   border: 1px solid ${props => props.theme.borderColor};
   border-radius: 4px;
-  font-size: 14px;
   background-color: ${props => props.theme.inputBackground};
   color: ${props => props.theme.textColor};
+  font-size: 14px;
   
   &:focus {
-    outline: none;
     border-color: ${props => props.theme.primaryColor};
+    outline: none;
   }
 `;
 
@@ -101,9 +120,9 @@ interface AddTodoFormProps {
 }
 
 const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
-  const dispatch = useDispatch();
-  const lists = useSelector((state: RootState) => state.lists.items);
-  const activeListId = useSelector((state: RootState) => state.lists.activeListId);
+  const dispatch = useAppDispatch();
+  const lists = useSelector((state: AppState) => state.lists.items);
+  const activeListId = useSelector((state: AppState) => state.lists.activeListId);
   
   const [title, setTitle] = useState('');
   const [isMyDay, setIsMyDay] = useState(false);
@@ -116,15 +135,15 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
     
     if (!title.trim()) return;
     
-    const now = new Date().toISOString();
+    const now = new Date();
     const targetListId = listId || activeListId || 'default';
     
     const newTodo = {
       id: uuidv4(),
       title: title.trim(),
       completed: false,
-      createdAt: now,
-      dueDate: dueDate || undefined,
+      createdAt: now.toISOString(),
+      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       listId: targetListId,
       isImportant,
       isMyDay,
@@ -184,13 +203,15 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
       </OptionRow>
       
       {showDatePicker && (
-        <OptionRow>
+        <DatePickerContainer>
+          <DateLabel>截止日期</DateLabel>
           <DateInput
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+            min={format(new Date(), 'yyyy-MM-dd')}
           />
-        </OptionRow>
+        </DatePickerContainer>
       )}
     </FormContainer>
   );

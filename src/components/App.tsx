@@ -8,6 +8,7 @@ import { fetchLists } from '../utils/slices/listsSlice';
 import { fetchSettings } from '../utils/slices/uiSlice';
 import AddTodoForm from './AddTodoForm';
 import TodoList from './TodoList';
+import WeekView from './WeekView';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -58,7 +59,7 @@ const LoadingScreen = styled.div`
 
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { theme, sidebarWidth } = useSelector((state: AppState) => state.ui);
+  const { theme, sidebarWidth, currentView } = useSelector((state: AppState) => state.ui);
   const activeListId = useSelector((state: AppState) => state.lists.activeListId);
   const todosStatus = useSelector((state: AppState) => state.todos.status);
   const listsStatus = useSelector((state: AppState) => state.lists.status);
@@ -95,6 +96,20 @@ const App: React.FC = () => {
     );
   }
 
+  // 根据当前视图显示不同内容
+  const renderContent = () => {
+    if (currentView === 'week') {
+      return <WeekView />;
+    }
+    
+    return (
+      <>
+        <AddTodoForm listId={activeListId || undefined} />
+        <TodoList listId={activeListId || currentView} />
+      </>
+    );
+  };
+
   return (
     <ThemeProvider theme={currentTheme}>
       <GlobalStyle />
@@ -103,8 +118,7 @@ const App: React.FC = () => {
         <MainContent>
           <Header />
           <Content>
-            <AddTodoForm listId={activeListId || undefined} />
-            <TodoList listId={activeListId || undefined} />
+            {renderContent()}
           </Content>
         </MainContent>
       </AppContainer>
