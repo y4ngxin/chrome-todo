@@ -6,9 +6,11 @@ import { nextWeek, previousWeek, goToCurrentWeek } from '../utils/slices/uiSlice
 import { format, addDays, startOfWeek, parseISO, isSameDay } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Todo } from '../utils/slices/todosSlice';
-import { HiChevronLeft, HiChevronRight, HiCalendar } from 'react-icons/hi';
+import { HiChevronLeft, HiChevronRight, HiCalendar, HiOutlineViewGrid } from 'react-icons/hi';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
-import { reorderTodos } from '../utils/slices/todosSlice';
+import { reorderTodos, saveTodos } from '../utils/slices/todosSlice';
+import { store } from '../utils/store';
+import * as storageService from '../utils/storage';
 
 interface WeekViewProps {
   onTodoClick?: (todoId: string) => void;
@@ -19,19 +21,29 @@ const WeekViewContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 0;
+  width: 100%;
+  height: 100%;
 `;
 
 const WeekHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: clamp(8px, 2vh, 16px);
+  flex-wrap: wrap;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 10px;
+  }
 `;
 
 const WeekTitle = styled.h2`
   margin: 0;
-  font-size: 18px;
+  font-size: clamp(1rem, 4vw, 1.2rem);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const WeekControls = styled.div`
@@ -57,48 +69,104 @@ const WeekButton = styled.button`
 
 const WeekGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: clamp(4px, 1vw, 8px);
+  height: calc(100% - 50px);
+  overflow-y: auto;
   
-  @media (max-width: 600px) {
-    grid-template-columns: repeat(1, 1fr);
+  /* 根据设备尺寸调整布局 */
+  /* 手机竖屏 */
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(120px, auto);
+  }
+  
+  /* 手机横屏或小型平板 */
+  @media (min-width: 481px) and (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: minmax(150px, 1fr);
+  }
+  
+  /* 中型平板 */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(150px, 1fr);
+  }
+  
+  /* 大屏设备 */
+  @media (min-width: 1025px) {
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(150px, 1fr);
+  }
+  
+  /* 低高度设备的高度调整 */
+  @media (max-height: 600px) {
+    grid-auto-rows: minmax(100px, auto);
   }
 `;
 
 const DayColumn = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 120px;
+  min-height: 100px;
+  height: 100%;
   background-color: ${props => props.theme.cardBackground};
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: 480px) {
+    margin-bottom: 8px;
+  }
 `;
 
 const WeekDayHeader = styled.div<{ isToday: boolean }>`
   background-color: ${props => props.isToday ? props.theme.primaryColor : props.theme.headerBackground};
   color: ${props => props.isToday ? props.theme.textOnPrimary : props.theme.textColor};
-  padding: 8px;
+  padding: clamp(6px, 1.5vw, 8px);
   text-align: center;
   font-weight: 500;
+  font-size: clamp(0.8rem, 2.5vw, 0.95rem);
 `;
 
 const DayContent = styled.div`
   flex-grow: 1;
   padding: 8px;
   overflow-y: auto;
-  max-height: 300px;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+  
+  /* 针对不同屏幕尺寸调整最大高度 */
+  @media (max-width: 480px) {
+    max-height: 200px;
+  }
+  
+  @media (min-width: 481px) and (max-width: 768px) {
+    max-height: 250px;
+  }
+  
+  @media (min-width: 769px) {
+    max-height: 300px;
+  }
 `;
 
 const TodoItem = styled.div<{ completed: boolean }>`
-  padding: 8px;
+  padding: clamp(6px, 1.5vw, 8px);
   margin-bottom: 8px;
   background-color: ${props => props.theme.backgroundColor};
   border-radius: 4px;
   border-left: 3px solid ${props => props.completed ? props.theme.successColor : props.theme.primaryColor};
-  font-size: 14px;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
   cursor: pointer;
   text-decoration: ${props => props.completed ? 'line-through' : 'none'};
   color: ${props => props.completed ? props.theme.textMuted : props.theme.textColor};
+  word-break: break-word;
   
   &:hover {
     background-color: ${props => props.theme.hoverBackground};
@@ -108,8 +176,8 @@ const TodoItem = styled.div<{ completed: boolean }>`
 const EmptyDayMessage = styled.div`
   color: ${props => props.theme.textMuted};
   text-align: center;
-  padding: 16px 8px;
-  font-size: 13px;
+  padding: clamp(8px, 2vw, 16px) clamp(4px, 1vw, 8px);
+  font-size: clamp(0.7rem, 2vw, 0.85rem);
 `;
 
 const WeekView: React.FC<WeekViewProps> = ({ onTodoClick }) => {
@@ -178,6 +246,8 @@ const WeekView: React.FC<WeekViewProps> = ({ onTodoClick }) => {
     const sourceDayTodos = getTodosForDay(sourceDay);
     const todo = sourceDayTodos[result.source.index];
     
+    console.log(`开始周视图排序操作，从${sourceDayIso}到${destinationDayIso}`);
+    
     // 如果是同一天内的排序
     if (sourceDayIndex === destinationDayIndex) {
       dispatch(reorderTodos({
@@ -210,12 +280,31 @@ const WeekView: React.FC<WeekViewProps> = ({ onTodoClick }) => {
         }));
       }
     }
+    
+    // 手动强制保存至存储
+    try {
+      // 在状态更新后，通过Promise确保正确的保存顺序
+      Promise.resolve().then(() => {
+        const currentTodos = store.getState().todos.items;
+        console.log(`正在手动保存周视图排序结果，共${currentTodos.length}个任务`);
+        
+        // 直接调用存储服务保存结果
+        storageService.setTodos(currentTodos)
+          .then(() => console.log('周视图排序结果保存成功'))
+          .catch(error => console.error('周视图排序结果保存失败', error));
+      });
+    } catch (error) {
+      console.error('保存周视图排序结果时出错:', error);
+    }
   };
   
   return (
     <WeekViewContainer>
       <WeekHeader>
-        <WeekTitle>周视图</WeekTitle>
+        <WeekTitle>
+          <HiOutlineViewGrid size={20} />
+          周视图
+        </WeekTitle>
         <WeekControls>
           <WeekButton onClick={handlePreviousWeek} title="上一周">
             <HiChevronLeft size={20} />

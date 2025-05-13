@@ -1,7 +1,7 @@
 {
   "name": "chrome-todo",
   "version": "1.0.0",
-  "description": "一款融合 Microsoft To Do 优势的 Chrome 浏览器待办事项插件",
+  "description": "高效现代化的Chrome浏览器待办事项插件，简洁直观的界面助您高效管理任务，提升工作和学习效率",
   "main": "index.js",
   "scripts": {
     "start": "webpack --watch --config webpack.dev.js",

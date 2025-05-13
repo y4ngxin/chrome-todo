@@ -17,7 +17,9 @@ import {
   HiX,
   HiPencil,
   HiCheck,
-  HiPlus
+  HiPlus,
+  HiOutlineMenu,
+  HiOutlineViewGrid
 } from 'react-icons/hi';
 
 interface SidebarContainerProps {
@@ -26,19 +28,47 @@ interface SidebarContainerProps {
 
 const SidebarContainer = styled.div<SidebarContainerProps>`
   width: ${props => props.isCollapsed ? '60px' : '240px'};
+  min-width: ${props => props.isCollapsed ? '60px' : '200px'};
   height: 100%;
   background-color: ${props => props.theme.sidebarBackground};
-  color: ${props => props.theme.textColor};
-  overflow-y: auto;
   border-right: 1px solid ${props => props.theme.borderColor};
-  transition: width 0.3s ease;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
-  flex-shrink: 0;
+  z-index: 2;
+  
+  /* 响应式调整 */
+  @media (max-width: 480px) {
+    position: absolute;
+    left: ${props => props.isCollapsed ? '-60px' : '0'};
+    width: ${props => props.isCollapsed ? '60px' : '85%'};
+    min-width: auto;
+    box-shadow: ${props => props.isCollapsed ? 'none' : '0 0 15px rgba(0, 0, 0, 0.2)'};
+    z-index: 10;
+  }
+  
+  @media (min-width: 481px) and (max-width: 768px) {
+    width: ${props => props.isCollapsed ? '50px' : '220px'};
+    min-width: ${props => props.isCollapsed ? '50px' : '180px'};
+  }
+  
+  /* 自定义滚动条 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
 `;
 
-const NavSection = styled.div`
-  padding: 16px 0;
-  border-bottom: 1px solid ${props => props.theme.borderColor};
+const NavSection = styled.nav`
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  margin-top: 20px;
 `;
 
 interface NavItemProps {
@@ -49,25 +79,39 @@ interface NavItemProps {
 const NavItem = styled.div<NavItemProps>`
   display: flex;
   align-items: center;
-  padding: 10px ${props => props.isCollapsed ? '0' : '16px'};
-  justify-content: ${props => props.isCollapsed ? 'center' : 'flex-start'};
+  padding: ${props => props.isCollapsed ? '12px 0' : '12px 16px'};
   cursor: pointer;
-  font-size: 14px;
-  color: ${props => props.active ? props.theme.primaryColor : props.theme.textColor};
-  background-color: ${props => props.active ? props.theme.activeItemBackground : 'transparent'};
+  transition: background-color 0.2s;
+  background-color: ${props => props.active ? props.theme.itemActiveBackground : 'transparent'};
+  color: ${props => props.active ? props.theme.textActive : props.theme.textColor};
+  justify-content: ${props => props.isCollapsed ? 'center' : 'flex-start'};
+  border-radius: ${props => props.isCollapsed ? '0' : '4px'};
+  margin: ${props => props.isCollapsed ? '0' : '0 8px'};
   
   &:hover {
-    background-color: ${props => props.theme.hoverBackground};
+    background-color: ${props => props.active ? props.theme.itemActiveBackground : props.theme.hoverBackground};
   }
 `;
 
 const NavIcon = styled.span`
-  margin-right: ${props => props.className?.includes('collapsed') ? '0' : '12px'};
-  font-size: 16px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  
+  &.collapsed {
+    margin-right: 0;
+    font-size: 22px;
+  }
 `;
 
-const NavText = styled.span<{ isCollapsed: boolean }>`
-  display: ${props => props.isCollapsed ? 'none' : 'inline'};
+const NavText = styled.span<{isCollapsed: boolean}>`
+  font-size: 14px;
+  display: ${props => props.isCollapsed ? 'none' : 'block'};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 interface ListsHeaderProps {
@@ -81,10 +125,12 @@ const ListsHeader = styled.div<ListsHeaderProps>`
   padding: 10px ${props => props.isCollapsed ? '0' : '16px'};
   font-weight: 500;
   font-size: 14px;
+  margin-top: 8px;
 `;
 
 const HeaderText = styled.span<{ isCollapsed: boolean }>`
   display: ${props => props.isCollapsed ? 'none' : 'inline'};
+  font-size: clamp(0.75rem, 2vw, 0.85rem);
 `;
 
 const AddListButton = styled.button`
@@ -94,22 +140,8 @@ const AddListButton = styled.button`
   cursor: pointer;
   font-size: 16px;
   padding: 0;
-  
-  &:hover {
-    color: ${props => props.theme.primaryColor};
-  }
-`;
-
-const ResizeHandle = styled.div`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  cursor: pointer;
-  color: ${props => props.theme.textMuted};
-  font-size: 16px;
-  z-index: 10;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,6 +153,36 @@ const ResizeHandle = styled.div`
   }
 `;
 
+const ResizeHandle = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  cursor: pointer;
+  color: ${props => props.theme.textMuted};
+  font-size: 16px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: ${props => props.theme.primaryColor};
+    background-color: ${props => props.theme.backgroundHover};
+  }
+  
+  @media (max-width: 480px) {
+    top: 10px;
+    right: 10px;
+    background-color: ${props => props.theme.backgroundHover};
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+`;
+
 const Backdrop = styled.div`
   position: fixed;
   top: 0;
@@ -129,6 +191,31 @@ const Backdrop = styled.div`
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.3);
   z-index: 5;
+  
+  @media (max-width: 480px) {
+    z-index: 9;
+  }
+`;
+
+const MobileSidebarToggle = styled.div`
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 36px;
+  height: 36px;
+  background-color: ${props => props.theme.primaryColor};
+  color: white;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 8;
+  cursor: pointer;
+  
+  @media (max-width: 480px) {
+    display: flex;
+  }
 `;
 
 const DefaultItems = [
@@ -153,7 +240,7 @@ const DefaultItems = [
   {
     id: 'week',
     name: '周视图',
-    icon: <HiOutlineCalendar size={20} />,
+    icon: <HiOutlineViewGrid size={20} />,
     color: '#0062b1'
   }
 ];
@@ -222,6 +309,7 @@ const Sidebar: React.FC = () => {
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [editingTagName, setEditingTagName] = useState('');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   
   const sidebarRef = useRef<HTMLDivElement>(null);
   const newTagInputRef = useRef<HTMLInputElement>(null);
@@ -230,11 +318,16 @@ const Sidebar: React.FC = () => {
   // 监听窗口大小变化，更新窗口宽度状态
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
+      const newWidth = window.innerWidth;
+      setWindowWidth(newWidth);
       
       // 只在窗口小于600px时自动收缩
-      if (window.innerWidth < 600) {
+      if (newWidth < 600 && !isCollapsed) {
         dispatch(setSidebarWidth('collapsed'));
+      } else if (newWidth >= 600 && isCollapsed && showMobileSidebar) {
+        // 如果从小屏幕变到大屏幕，且侧边栏是展开状态，设置为正常状态
+        setShowMobileSidebar(false);
+        dispatch(setSidebarWidth('normal'));
       }
     };
     
@@ -245,7 +338,7 @@ const Sidebar: React.FC = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [dispatch]);
+  }, [dispatch, isCollapsed, showMobileSidebar]);
   
   // 处理点击外部关闭表单
   useEffect(() => {
@@ -253,13 +346,19 @@ const Sidebar: React.FC = () => {
       if (showAddListForm && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
         setShowAddListForm(false);
       }
+      
+      // 在移动设备上点击背景关闭侧边栏
+      if (windowWidth <= 480 && !isCollapsed && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        dispatch(setSidebarWidth('collapsed'));
+        setShowMobileSidebar(false);
+      }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showAddListForm]);
+  }, [showAddListForm, dispatch, windowWidth, isCollapsed]);
   
   // 处理默认导航项点击
   const handleItemClick = (id: string) => {
@@ -274,6 +373,7 @@ const Sidebar: React.FC = () => {
     // 在小屏幕上点击后自动收缩边栏
     if (windowWidth < 600) {
       dispatch(setSidebarWidth('collapsed'));
+      setShowMobileSidebar(false);
     }
   };
   
@@ -288,11 +388,30 @@ const Sidebar: React.FC = () => {
     // 在小屏幕上点击列表后自动收缩边栏
     if (windowWidth < 600) {
       dispatch(setSidebarWidth('collapsed'));
+      setShowMobileSidebar(false);
     }
   };
   
   const handleToggleSidebar = () => {
-    dispatch(toggleSidebarWidth());
+    if (windowWidth <= 480) {
+      // 移动设备上的特殊处理
+      if (isCollapsed) {
+        dispatch(setSidebarWidth('normal'));
+        setShowMobileSidebar(true);
+      } else {
+        dispatch(setSidebarWidth('collapsed'));
+        setShowMobileSidebar(false);
+      }
+    } else {
+      // 桌面设备正常切换
+      dispatch(toggleSidebarWidth());
+    }
+  };
+  
+  // 处理移动设备上的菜单按钮点击
+  const handleMobileMenuClick = () => {
+    dispatch(setSidebarWidth('normal'));
+    setShowMobileSidebar(true);
   };
   
   const handleAddListClick = () => {
@@ -393,11 +512,32 @@ const Sidebar: React.FC = () => {
   
   return (
     <>
-      {showAddListForm && <Backdrop onClick={() => setShowAddListForm(false)} />}
+      {(showAddListForm || (!isCollapsed && windowWidth <= 480)) && 
+        <Backdrop onClick={() => {
+          setShowAddListForm(false);
+          if (windowWidth <= 480) {
+            dispatch(setSidebarWidth('collapsed'));
+            setShowMobileSidebar(false);
+          }
+        }} />
+      }
       
-      <SidebarContainer ref={sidebarRef} isCollapsed={isCollapsed}>
+      {/* 移动设备菜单按钮 */}
+      {windowWidth <= 480 && isCollapsed && (
+        <MobileSidebarToggle onClick={handleMobileMenuClick}>
+          <HiOutlineMenu size={20} />
+        </MobileSidebarToggle>
+      )}
+      
+      <SidebarContainer 
+        ref={sidebarRef} 
+        isCollapsed={isCollapsed}
+        style={{
+          left: windowWidth <= 480 && isCollapsed && !showMobileSidebar ? '-60px' : '0'
+        }}
+      >
         <ResizeHandle onClick={handleToggleSidebar} title={isCollapsed ? "展开侧边栏" : "收起侧边栏"}>
-          {isCollapsed ? '→' : '←'}
+          {isCollapsed ? <HiOutlineMenu size={18} /> : <HiX size={18} />}
         </ResizeHandle>
         
         <NavSection>
@@ -430,7 +570,9 @@ const Sidebar: React.FC = () => {
             onClick={() => handleItemClick('week')}
             isCollapsed={isCollapsed}
           >
-            <NavIcon className={isCollapsed ? 'collapsed' : ''}>📅</NavIcon>
+            <NavIcon className={isCollapsed ? 'collapsed' : ''}>
+              <HiOutlineViewGrid size={20} />
+            </NavIcon>
             <NavText isCollapsed={isCollapsed}>周视图</NavText>
           </NavItem>
         </NavSection>

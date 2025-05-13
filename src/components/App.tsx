@@ -25,27 +25,54 @@ interface AppContainerProps {
 
 const AppContainer = styled.div<AppContainerProps>`
   display: flex;
-  width: 372px;
-  height: 653px;
+  width: 100%;
+  height: 100vh;
   overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
   
-  @media (min-width: 800px) {
-    width: 800px;
-    height: 700px;
+  /* 小屏幕设备 */
+  @media (max-width: 480px) {
+    width: 100%;
+    height: 100vh;
+    border: none;
+    box-shadow: none;
   }
   
-  @media (min-width: 1200px) {
-    width: 1000px;
-    height: 800px;
-  }
-  
-  @media (max-width: 372px) {
+  /* 平板设备 */
+  @media (min-width: 481px) and (max-width: 768px) {
     width: 100%;
     height: 100%;
-    border: none;
+    max-height: 100vh;
+  }
+  
+  /* 中等屏幕 */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    width: 90%;
+    height: 90vh;
+    max-width: 900px;
+    max-height: 800px;
+    margin: auto;
+  }
+  
+  /* 大屏幕 */
+  @media (min-width: 1025px) and (max-width: 1200px) {
+    width: 80%;
+    height: 85vh;
+    max-width: 1000px;
+    max-height: 800px;
+    margin: auto;
+  }
+  
+  /* 超大屏幕 */
+  @media (min-width: 1201px) {
+    width: 75%;
+    height: 80vh;
+    max-width: 1200px;
+    max-height: 800px;
+    margin: auto;
   }
 `;
 
@@ -55,6 +82,7 @@ const MainContent = styled.div`
   flex-grow: 1;
   height: 100%;
   overflow: hidden;
+  width: 100%;
 `;
 
 const Content = styled.main`
@@ -63,6 +91,15 @@ const Content = styled.main`
   overflow-y: auto;
   background-color: ${props => props.theme.backgroundColor};
   color: ${props => props.theme.textColor};
+  
+  /* 响应式内容区域内边距 */
+  @media (max-width: 480px) {
+    padding: 12px 8px;
+  }
+  
+  @media (min-width: 481px) and (max-width: 768px) {
+    padding: 14px 10px;
+  }
 `;
 
 const LoadingScreen = styled.div`
@@ -74,6 +111,15 @@ const LoadingScreen = styled.div`
   width: 100%;
   background-color: ${props => props.theme.backgroundColor};
   color: ${props => props.theme.textColor};
+  
+  h2 {
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    margin-bottom: 10px;
+  }
+  
+  p {
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+  }
 `;
 
 // 番茄钟视图
@@ -81,14 +127,14 @@ const PomodoroView = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: clamp(15px, 5vw, 30px);
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
 `;
 
 const PomodoroTitle = styled.h2`
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
   margin-bottom: 20px;
   color: ${props => props.theme.textColor};
 `;

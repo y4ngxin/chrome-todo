@@ -62,7 +62,25 @@ export const getTodos = (): Promise<Todo[]> => {
 
 // 保存待办事项列表
 export const setTodos = (todos: Todo[]): Promise<void> => {
-  return setData(STORAGE_KEYS.TODOS, todos);
+  console.log(`开始保存${todos.length}个待办事项到Chrome存储`);
+  return new Promise((resolve, reject) => {
+    try {
+      // 深拷贝避免引用问题
+      const todosCopy = JSON.parse(JSON.stringify(todos));
+      chrome.storage.local.set({ [STORAGE_KEYS.TODOS]: todosCopy }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('保存待办事项时出错:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        console.log('待办事项保存成功');
+        resolve();
+      });
+    } catch (error) {
+      console.error('准备待办事项数据保存时出错:', error);
+      reject(error);
+    }
+  });
 };
 
 // 获取列表

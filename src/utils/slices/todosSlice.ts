@@ -172,20 +172,28 @@ export const todosSlice = createSlice({
         newDueDate
       } = action.payload;
       
+      // 标记重新排序时间戳，确保状态发生变化
+      const now = new Date().toISOString();
+      
+      // 设置状态为需要保存
+      state.status = 'succeeded';
+      
       // 处理跨天拖拽的情况
       if (sourceDayId !== destinationDayId && sourceDayId && destinationDayId && todoId && newDueDate) {
+        console.log('处理跨天拖拽');
         // 找到要更新的任务
         const todoToUpdate = state.items.find(todo => todo.id === todoId);
         if (todoToUpdate) {
           // 更新截止日期
           todoToUpdate.dueDate = newDueDate;
-          todoToUpdate.updatedAt = new Date().toISOString();
+          todoToUpdate.updatedAt = now;
           return; // 直接返回，不需要重新排序
         }
       }
       
       // 处理周视图中的排序
       if (listId === 'week' && sourceDayId && destinationDayId) {
+        console.log('处理周视图排序');
         // 处理同一天内的排序
         if (sourceDayId === destinationDayId) {
           // 获取该天的所有任务
@@ -194,6 +202,9 @@ export const todosSlice = createSlice({
             const todoDate = todo.dueDate.split('T')[0];
             return todoDate === sourceDayId;
           });
+          
+          // 获取被移动的任务ID
+          const movedTodoId = dayTodos[sourceIndex]?.id;
           
           // 重新排序
           const [removed] = dayTodos.splice(sourceIndex, 1);
@@ -207,12 +218,24 @@ export const todosSlice = createSlice({
             
             // 查找任务在排序后的位置
             const sortedTodo = dayTodos.find(t => t.id === todo.id);
+            
+            // 如果是被移动的任务，更新updatedAt字段
+            if (movedTodoId && todo.id === movedTodoId) {
+              return {
+                ...todo,
+                ...sortedTodo,
+                updatedAt: now
+              };
+            }
+            
             return sortedTodo || todo;
           });
           
           return;
         }
       }
+      
+      console.log('处理普通列表排序', listId);
       
       // 根据listId筛选出相关的待办事项
       let relevantTodos: Todo[] = [];
@@ -229,8 +252,24 @@ export const todosSlice = createSlice({
         relevantTodos = [...state.items];
       }
       
+      // 获取被移动的任务ID
+      const movedTodoId = relevantTodos[sourceIndex]?.id;
+      console.log('移动的任务ID:', movedTodoId);
+      
       // 重新排序
       const [removed] = relevantTodos.splice(sourceIndex, 1);
+      
+      // 更新被移动任务的updatedAt
+      if (movedTodoId) {
+        for (const todo of state.items) {
+          if (todo.id === movedTodoId) {
+            todo.updatedAt = now;
+            console.log('已更新任务的updatedAt时间戳');
+            break;
+          }
+        }
+      }
+      
       relevantTodos.splice(destinationIndex, 0, removed);
       
       // 如果是针对特定listId的排序，需要更新原始items数组
@@ -240,31 +279,46 @@ export const todosSlice = createSlice({
         // 根据listId移除并重新插入相关的项目
         if (listId === 'myDay') {
           updatedItems = updatedItems.filter(todo => !todo.isMyDay);
-          relevantTodos.forEach(todo => {
+          for (const todo of relevantTodos) {
             const index = updatedItems.findIndex(t => t.id === todo.id);
             if (index === -1) {
               updatedItems.push(todo);
+            } else {
+              updatedItems[index] = todo;
             }
-          });
+          }
         } else if (listId === 'important') {
           updatedItems = updatedItems.filter(todo => !todo.isImportant);
-          relevantTodos.forEach(todo => {
+          for (const todo of relevantTodos) {
             const index = updatedItems.findIndex(t => t.id === todo.id);
             if (index === -1) {
               updatedItems.push(todo);
+            } else {
+              updatedItems[index] = todo;
             }
-          });
+          }
         } else if (listId === 'planned') {
           updatedItems = updatedItems.filter(todo => !todo.dueDate);
-          relevantTodos.forEach(todo => {
+          for (const todo of relevantTodos) {
             const index = updatedItems.findIndex(t => t.id === todo.id);
             if (index === -1) {
               updatedItems.push(todo);
+            } else {
+              updatedItems[index] = todo;
             }
-          });
+          }
         } else if (!['myDay', 'important', 'planned', 'week'].includes(listId)) {
           updatedItems = updatedItems.filter(todo => todo.listId !== listId);
-          updatedItems = [...updatedItems, ...relevantTodos];
+          
+          // 合并排序后的待办事项
+          for (const todo of relevantTodos) {
+            const index = updatedItems.findIndex(t => t.id === todo.id);
+            if (index === -1) {
+              updatedItems.push(todo);
+            } else {
+              updatedItems[index] = todo;
+            }
+          }
         }
         
         state.items = updatedItems;
@@ -289,7 +343,15 @@ export const todosSlice = createSlice({
       })
       .addCase(saveTodos.fulfilled, (state, action) => {
         // 保存成功后不需要更新状态
-      });
+      })
+      // 添加对 reorderTodos 操作的处理，确保状态保存
+      .addMatcher(
+        (action) => action.type === 'todos/reorderTodos',
+        (state) => {
+          // 这将确保中间件知道状态已更改，并需要保存
+          state.status = 'succeeded';
+        }
+      );
   },
 });
 

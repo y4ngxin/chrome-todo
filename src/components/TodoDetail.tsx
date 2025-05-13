@@ -42,16 +42,18 @@ const DetailContainer = styled.div<{ isOpen: boolean }>`
   overflow: hidden;
   will-change: transform;
   
-  @media (min-width: 800px) {
-    width: 450px;
+  /* 响应式适配 */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    width: 40%;
   }
   
-  @media (min-width: 1200px) {
-    width: 500px;
+  @media (min-width: 1025px) {
+    width: 400px;
   }
   
-  @media (max-width: 460px) {
+  @media (max-width: 768px) {
     width: 100%;
+    box-shadow: none;
   }
 `;
 
@@ -62,335 +64,157 @@ const DetailHeader = styled.div`
   align-items: center;
   padding: 16px;
   border-bottom: 1px solid ${props => props.theme.borderColor};
+  
+  @media (max-width: 480px) {
+    padding: 14px 12px;
+  }
 `;
 
+// 关闭按钮
 const CloseButton = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.theme.textMuted};
-  cursor: pointer;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
-  border-radius: 4px;
+  border-radius: 50%;
+  color: ${props => props.theme.textMuted};
+  cursor: pointer;
+  padding: 0;
   
   &:hover {
     background-color: ${props => props.theme.hoverBackground};
     color: ${props => props.theme.textColor};
   }
+  
+  @media (max-width: 480px) {
+    width: 36px;
+    height: 36px;
+  }
 `;
 
-// 详情内容
+// 详情标题
+const DetailTitle = styled.h2`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  
+  @media (max-width: 480px) {
+    font-size: 16px;
+  }
+`;
+
+// 内容区域
 const DetailContent = styled.div`
   flex-grow: 1;
   padding: 16px;
   overflow-y: auto;
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+  }
 `;
 
-// 任务标题
-const TitleSection = styled.div`
-  margin-bottom: 20px;
+// 表单部分
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  @media (max-width: 480px) {
+    gap: 12px;
+  }
 `;
 
-const TodoTitle = styled.input`
-  font-size: 1.5rem;
-  font-weight: 600;
-  width: 100%;
+// 任务标题输入
+const TitleInput = styled.input`
+  font-size: 18px;
+  font-weight: 500;
   border: none;
-  background: transparent;
-  color: ${props => props.theme.textColor};
+  border-bottom: 1px solid ${props => props.theme.borderColor};
   padding: 8px 0;
+  background-color: transparent;
+  color: ${props => props.theme.textColor};
+  width: 100%;
   
   &:focus {
     outline: none;
-    border-bottom: 2px solid ${props => props.theme.primaryColor};
+    border-bottom-color: ${props => props.theme.primaryColor};
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 16px;
+    padding: 6px 0;
+  }
+`;
+
+// 任务操作按钮组
+const ActionButtonsGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 480px) {
+    justify-content: space-between;
+    margin-top: 12px;
   }
 `;
 
 // 操作按钮
-const ActionSection = styled.div`
-  display: flex;
-  justify-content: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-`;
-
-const ActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
+const ActionButton = styled.button<{active?: boolean}>`
+  background-color: ${props => props.active ? props.theme.primaryColor : 'transparent'};
+  color: ${props => props.active ? props.theme.textOnPrimary : props.theme.textColor};
+  border: 1px solid ${props => props.active ? props.theme.primaryColor : props.theme.borderColor};
   padding: 8px 12px;
   border-radius: 4px;
-  border: none;
-  background-color: ${props => props.theme.buttonBackground};
-  color: ${props => props.theme.buttonText};
-  cursor: pointer;
-  
-  &:hover {
-    background-color: ${props => props.theme.buttonHoverBackground};
-  }
-  
-  &.active {
-    color: ${props => props.theme.primaryColor};
-    background-color: ${props => props.theme.primaryColorLight};
-  }
-`;
-
-// 日期选择器
-const DateSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const DateRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const DateLabel = styled.label`
-  color: ${props => props.theme.textMuted};
-  font-size: 14px;
-  white-space: nowrap;
-`;
-
-const DateInput = styled.input`
-  padding: 6px 8px;
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 4px;
-  background-color: ${props => props.theme.inputBackground};
-  color: ${props => props.theme.textColor};
-  font-size: 14px;
-  flex: 0 0 auto;
-  width: 130px;
-  
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.primaryColor};
-  }
-`;
-
-const DateShortcuts = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex: 1;
-`;
-
-const DateShortcutButton = styled.button`
-  background-color: transparent;
-  color: ${props => props.theme.textColor};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background-color: ${props => props.theme.hoverBackground};
-    border-color: ${props => props.theme.primaryColor};
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.primaryColor};
-  }
-`;
-
-// 优先级选择
-const PrioritySection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const PriorityLabel = styled.label`
-  display: block;
-  margin-bottom: 8px;
-  color: ${props => props.theme.textMuted};
-  font-size: 14px;
-`;
-
-const PriorityOptions = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-interface PriorityButtonProps {
-  active: boolean;
-  priority: 'low' | 'medium' | 'high';
-}
-
-const PriorityButton = styled.button<PriorityButtonProps>`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: none;
-  background-color: ${props => {
-    if (props.active) {
-      switch(props.priority) {
-        case 'high': return props.theme.errorColorLight;
-        case 'medium': return props.theme.warningColorLight;
-        case 'low': return props.theme.infoColorLight;
-        default: return 'transparent';
-      }
-    } else {
-      return 'transparent';
-    }
-  }};
-  color: ${props => {
-    if (props.active) {
-      switch(props.priority) {
-        case 'high': return props.theme.errorColor;
-        case 'medium': return props.theme.warningColor;
-        case 'low': return props.theme.infoColor;
-        default: return props.theme.textColor;
-      }
-    } else {
-      return props.theme.textMuted;
-    }
-  }};
   cursor: pointer;
+  transition: all 0.2s ease;
   
   &:hover {
-    background-color: ${props => {
-      switch(props.priority) {
-        case 'high': return props.theme.errorColorLight;
-        case 'medium': return props.theme.warningColorLight;
-        case 'low': return props.theme.infoColorLight;
-        default: return props.theme.backgroundHover;
-      }
-    }};
+    background-color: ${props => props.active ? props.theme.primaryColorHover : props.theme.hoverBackground};
+  }
+  
+  @media (max-width: 480px) {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    flex: 1 0 calc(50% - 8px);
   }
 `;
 
-// 标签管理
-const TagsSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const TagsLabel = styled.label`
-  display: block;
-  margin-bottom: 8px;
-  color: ${props => props.theme.textMuted};
-  font-size: 14px;
-`;
-
-const TagsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-`;
-
-const Tag = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background-color: ${props => props.theme.tagBackground};
-  color: ${props => props.theme.tagText};
-  border-radius: 4px;
-  font-size: 12px;
-`;
-
-const RemoveTagButton = styled.button`
-  background: transparent;
-  border: none;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
+// 备注容器
+const NotesContainer = styled.div`
+  margin-top: 24px;
   
-  &:hover {
-    color: ${props => props.theme.errorColor};
+  @media (max-width: 480px) {
+    margin-top: 16px;
   }
 `;
 
-const TagInput = styled.input`
+// 备注标题
+const NotesTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  
+  @media (max-width: 480px) {
+    font-size: 14px;
+  }
+`;
+
+// 备注内容输入
+const NotesInput = styled.textarea`
   width: 100%;
-  padding: 8px 12px;
+  min-height: 120px;
   border: 1px solid ${props => props.theme.borderColor};
   border-radius: 4px;
-  background-color: ${props => props.theme.inputBackground};
-  color: ${props => props.theme.textColor};
-  font-size: 14px;
-  
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.primaryColor};
-  }
-`;
-
-const TagInputContainer = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const TagsList = styled.div`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  background-color: ${props => props.theme.cardBackground};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 4px;
-`;
-
-const TagOption = styled.div`
-  padding: 8px 12px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: ${props => props.theme.backgroundHover};
-  }
-`;
-
-const SelectButton = styled.button`
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${props => props.theme.textMuted};
-  cursor: pointer;
-  
-  &:hover {
-    color: ${props => props.theme.primaryColor};
-  }
-`;
-
-// 备注部分
-const NotesSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const NotesLabel = styled.label`
-  display: block;
-  margin-bottom: 8px;
-  color: ${props => props.theme.textMuted};
-  font-size: 14px;
-`;
-
-const NotesTextarea = styled.textarea`
-  width: 100%;
-  min-height: 100px;
-  padding: 12px;
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 4px;
-  background-color: ${props => props.theme.inputBackground};
+  padding: 8px;
+  background-color: ${props => props.theme.inputBackground || 'transparent'};
   color: ${props => props.theme.textColor};
   resize: vertical;
   
@@ -398,180 +222,34 @@ const NotesTextarea = styled.textarea`
     outline: none;
     border-color: ${props => props.theme.primaryColor};
   }
-`;
-
-// 步骤部分
-const StepsSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const StepsHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const StepsLabel = styled.label`
-  color: ${props => props.theme.textMuted};
-  font-size: 14px;
-`;
-
-const AddStepButton = styled.button`
-  background: transparent;
-  border: none;
-  color: ${props => props.theme.textColor};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 14px;
   
-  &:hover {
-    color: ${props => props.theme.primaryColor};
+  @media (max-width: 480px) {
+    min-height: 100px;
   }
 `;
 
-const StepsList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const StepItem = styled.li`
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid ${props => props.theme.borderColor};
-  
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const StepCheckbox = styled.div<{ checked: boolean }>`
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid ${props => props.checked ? props.theme.primaryColor : props.theme.borderColor};
-  background-color: ${props => props.checked ? props.theme.primaryColor : 'transparent'};
-  margin-right: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  
-  svg {
-    color: white;
-    display: ${props => props.checked ? 'block' : 'none'};
-  }
-`;
-
-const StepInput = styled.input<{ completed: boolean }>`
-  flex-grow: 1;
-  border: none;
-  background: transparent;
-  color: ${props => props.completed ? props.theme.textMuted : props.theme.textColor};
-  text-decoration: ${props => props.completed ? 'line-through' : 'none'};
-  
-  &:focus {
-    outline: none;
-  }
-`;
-
-const RemoveStepButton = styled.button`
-  background: transparent;
-  border: none;
-  color: ${props => props.theme.textMuted};
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s;
-  
-  ${StepItem}:hover & {
-    opacity: 1;
-  }
-  
-  &:hover {
-    color: ${props => props.theme.errorColor};
-  }
-`;
-
-// 添加新步骤的输入框
-const NewStepInput = styled.div`
-  display: flex;
-  align-items: center;
-  margin-top: 12px;
-  padding: 8px 0;
-`;
-
-const StepPlusIcon = styled.div`
-  width: 18px;
-  height: 18px;
-  margin-right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${props => props.theme.textMuted};
-`;
-
-const NewStepField = styled.input`
-  flex-grow: 1;
-  border: none;
-  background: transparent;
-  color: ${props => props.theme.textColor};
-  
-  &:focus {
-    outline: none;
-  }
-  
-  &::placeholder {
-    color: ${props => props.theme.textMuted};
-  }
-`;
-
-// 底部操作栏
-const DetailFooter = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 16px;
-  border-top: 1px solid ${props => props.theme.borderColor};
-`;
-
+// 删除按钮
 const DeleteButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 4px;
-  border: none;
-  background-color: ${props => props.theme.errorColorLight};
-  color: ${props => props.theme.errorColor};
-  cursor: pointer;
-  
-  &:hover {
-    background-color: ${props => props.theme.errorColor};
-    color: white;
-  }
-`;
-
-const SaveButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 4px;
-  border: none;
-  background-color: ${props => props.theme.primaryColor};
+  background-color: ${props => props.theme.errorColor};
   color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
   
   &:hover {
-    background-color: ${props => props.theme.primaryColorDark};
+    background-color: ${props => `${props.theme.errorColor}dd`};
+  }
+  
+  @media (max-width: 480px) {
+    margin-top: 20px;
+    padding: 10px 16px;
+    width: 100%;
   }
 `;
 
@@ -608,26 +286,28 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
   const todo = todos.find((t: Todo) => t.id === todoId);
   const isOpen = !!todoId;
   
-  // 本地状态，编辑时使用
-  const [title, setTitle] = useState('');
-  const [isMyDay, setIsMyDay] = useState(false);
-  const [isImportant, setIsImportant] = useState(false);
-  const [dueDate, setDueDate] = useState('');
-  const [notes, setNotes] = useState('');
-  const [steps, setSteps] = useState<TodoStep[]>([]);
+  // 状态管理
+  const [title, setTitle] = useState(todo?.title || '');
+  const [notes, setNotes] = useState(todo?.notes || '');
+  const [dueDate, setDueDate] = useState(todo?.dueDate ? todo.dueDate.split('T')[0] : '');
+  const [isMyDay, setIsMyDay] = useState(todo?.isMyDay || false);
+  const [isImportant, setIsImportant] = useState(todo?.isImportant || false);
+  const [steps, setSteps] = useState<TodoStep[]>(todo?.steps || []);
   const [newStepText, setNewStepText] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | undefined>(undefined);
-  const [tags, setTags] = useState<string[]>([]);
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | undefined>(todo?.priority);
+  const [tags, setTags] = useState<string[]>(todo?.tags || []);
   const [newTag, setNewTag] = useState('');
+  const [showTagsList, setShowTagsList] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [completed, setCompleted] = useState(todo?.completed || false);
+  
+  const allTags = useSelector((state: AppState) => state.tags.items);
   
   // 新步骤输入框引用，用于自动聚焦
   const newStepInputRef = useRef<HTMLInputElement>(null);
 
   // 防止过于频繁的保存，只在状态稳定后保存
   const [shouldSave, setShouldSave] = useState(false);
-  
-  const allTags = useSelector((state: AppState) => state.tags.items);
-  const [showTagsList, setShowTagsList] = useState(false);
   
   // 保存更改到Redux - 确保useCallback在条件判断前调用
   const saveChanges = useCallback(() => {
@@ -716,19 +396,26 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
   
   // 切换"我的一天"状态
   const handleToggleMyDay = () => {
-    setIsMyDay(prev => !prev);
-    dispatch(toggleMyDay(todo.id));
+    setIsMyDay(!isMyDay);
+    if (todo) {
+      dispatch(toggleMyDay(todo.id));
+    }
   };
   
   // 切换重要状态
   const handleToggleImportant = () => {
-    setIsImportant(prev => !prev);
-    dispatch(toggleImportant(todo.id));
+    setIsImportant(!isImportant);
+    if (todo) {
+      dispatch(toggleImportant(todo.id));
+    }
   };
   
   // 切换完成状态
   const handleToggleCompleted = () => {
-    dispatch(toggleCompleted(todo.id));
+    setCompleted(!completed);
+    if (todo) {
+      dispatch(toggleCompleted(todo.id));
+    }
   };
   
   // 添加新步骤
@@ -882,10 +569,15 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     }
   };
   
+  const handleDelete = () => {
+    dispatch(removeTodo(todo.id));
+    onClose();
+  };
+  
   return (
     <DetailContainer isOpen={isOpen}>
       <DetailHeader>
-        <div />
+        <DetailTitle>任务详情</DetailTitle>
         <CloseButton onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -895,219 +587,214 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
       </DetailHeader>
       
       <DetailContent>
-        <TitleSection>
-          <TodoTitle 
+        <Form>
+          <TitleInput 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="任务标题"
+            placeholder="输入任务标题"
           />
-        </TitleSection>
-        
-        <ActionSection>
-          <ActionButton 
-            className={isMyDay ? 'active' : ''}
-            onClick={handleToggleMyDay}
-          >
-            {isMyDay ? <HiSun size={18} /> : <HiOutlineSun size={18} />}
-            我的一天
-          </ActionButton>
           
-          <ActionButton 
-            className={isImportant ? 'active' : ''}
-            onClick={handleToggleImportant}
-          >
-            {isImportant ? <HiStar size={18} /> : <HiOutlineStar size={18} />}
-            重要
-          </ActionButton>
-        </ActionSection>
-        
-        <DateSection>
-          <DateRow>
-            <DateLabel>截止日期:</DateLabel>
-            <DateInput 
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-            <DateShortcuts>
-              <DateShortcutButton 
-                type="button" 
-                onClick={() => handleDateShortcut('today')}
-              >
-                今天
-              </DateShortcutButton>
-              <DateShortcutButton 
-                type="button" 
-                onClick={() => handleDateShortcut('tomorrow')}
-              >
-                明天
-              </DateShortcutButton>
-              <DateShortcutButton 
-                type="button" 
-                onClick={() => handleDateShortcut('nextWeek')}
-              >
-                下周
-              </DateShortcutButton>
-              <DateShortcutButton 
-                type="button" 
-                onClick={() => handleDateShortcut('nextWeekend')}
-              >
-                周末
-              </DateShortcutButton>
-              <DateShortcutButton 
-                type="button" 
-                onClick={() => handleDateShortcut('clear')}
-              >
-                清除
-              </DateShortcutButton>
-            </DateShortcuts>
-          </DateRow>
-        </DateSection>
-        
-        <PrioritySection>
-          <PriorityLabel>优先级</PriorityLabel>
-          <PriorityOptions>
-            <PriorityButton 
-              priority="low"
-              active={priority === 'low'}
-              onClick={() => handleSetPriority('low')}
-              title="低优先级"
+          <ActionButtonsGroup>
+            <ActionButton 
+              active={isMyDay}
+              onClick={handleToggleMyDay}
             >
-              <HiOutlineFlag size={16} />
-              低
-            </PriorityButton>
-            <PriorityButton 
-              priority="medium"
-              active={priority === 'medium'}
-              onClick={() => handleSetPriority('medium')}
-              title="中优先级"
-            >
-              <HiOutlineExclamation size={16} />
-              中
-            </PriorityButton>
-            <PriorityButton 
-              priority="high"
-              active={priority === 'high'}
-              onClick={() => handleSetPriority('high')}
-              title="高优先级"
-            >
-              <HiOutlineExclamationCircle size={16} />
-              高
-            </PriorityButton>
-          </PriorityOptions>
-        </PrioritySection>
-        
-        <TagsSection>
-          <TagsLabel>标签</TagsLabel>
-          <TagsContainer>
-            {tags.map((tag, index) => (
-              <Tag key={index}>
-                {tag}
-                <RemoveTagButton onClick={() => handleRemoveTag(tag)}>
-                  <HiX size={12} />
-                </RemoveTagButton>
-              </Tag>
-            ))}
-          </TagsContainer>
-          <TagInputContainer>
-            <TagInput
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              placeholder="添加标签 (回车确认)"
-              onKeyDown={handleTagKeyDown}
-              onFocus={() => setShowTagsList(true)}
-            />
-            <SelectButton onClick={toggleTagsList} title="选择已有标签">
-              <HiSelector size={18} />
-            </SelectButton>
+              {isMyDay ? <HiSun size={18} /> : <HiOutlineSun size={18} />}
+              我的一天
+            </ActionButton>
             
-            {showTagsList && allTags.length > 0 && (
-              <TagsList>
-                {allTags
-                  .filter((tag: Tag) => !tags.includes(tag.name) && 
-                    (newTag.trim() === '' || tag.name.toLowerCase().includes(newTag.toLowerCase())))
-                  .map((tag: Tag) => (
-                    <TagOption 
-                      key={tag.id} 
-                      onClick={() => handleSelectTag(tag.name)}
+            <ActionButton 
+              active={isImportant}
+              onClick={handleToggleImportant}
+            >
+              {isImportant ? <HiStar size={18} /> : <HiOutlineStar size={18} />}
+              重要
+            </ActionButton>
+            
+            <ActionButton 
+              active={!!dueDate}
+              onClick={() => setShowDatePicker(!showDatePicker)}
+            >
+              <HiCalendar size={18} />
+              {dueDate ? format(parseISO(dueDate), 'yyyy-MM-dd') : '截止日期'}
+            </ActionButton>
+            
+            <ActionButton 
+              active={completed}
+              onClick={handleToggleCompleted}
+            >
+              <HiCheck size={18} />
+              {completed ? '已完成' : '完成'}
+            </ActionButton>
+          </ActionButtonsGroup>
+          
+          {/* 日期选择区域 */}
+          {showDatePicker && (
+            <div>
+              <input 
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                style={{ marginBottom: '8px', width: '100%' }}
+              />
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => handleDateShortcut('today')}>今天</button>
+                <button type="button" onClick={() => handleDateShortcut('tomorrow')}>明天</button>
+                <button type="button" onClick={() => handleDateShortcut('nextWeek')}>下周</button>
+                <button type="button" onClick={() => handleDateShortcut('clear')}>清除</button>
+              </div>
+            </div>
+          )}
+          
+          {/* 优先级选择 */}
+          <div>
+            <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>优先级</h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                type="button"
+                onClick={() => handleSetPriority('low')}
+                style={{ 
+                  background: priority === 'low' ? '#e3f1fa' : 'transparent',
+                  color: priority === 'low' ? '#0078d4' : 'inherit',
+                  border: '1px solid #ccc',
+                  padding: '6px 12px',
+                  borderRadius: '4px'
+                }}
+              >
+                <HiOutlineFlag size={16} style={{ marginRight: '4px' }} />
+                低
+              </button>
+              <button 
+                type="button"
+                onClick={() => handleSetPriority('medium')}
+                style={{ 
+                  background: priority === 'medium' ? '#fff5cc' : 'transparent',
+                  color: priority === 'medium' ? '#805b00' : 'inherit',
+                  border: '1px solid #ccc',
+                  padding: '6px 12px',
+                  borderRadius: '4px'
+                }}
+              >
+                <HiOutlineExclamation size={16} style={{ marginRight: '4px' }} />
+                中
+              </button>
+              <button 
+                type="button"
+                onClick={() => handleSetPriority('high')}
+                style={{ 
+                  background: priority === 'high' ? '#fde7e9' : 'transparent',
+                  color: priority === 'high' ? '#c42b1c' : 'inherit',
+                  border: '1px solid #ccc',
+                  padding: '6px 12px',
+                  borderRadius: '4px'
+                }}
+              >
+                <HiOutlineExclamationCircle size={16} style={{ marginRight: '4px' }} />
+                高
+              </button>
+            </div>
+          </div>
+          
+          {/* 步骤区域 */}
+          <div>
+            <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>步骤</h3>
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {Array.isArray(steps) && steps.map(step => 
+                step && step.id ? (
+                  <li key={step.id} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '8px 0',
+                    borderBottom: '1px solid #eee'
+                  }}>
+                    <div 
+                      onClick={() => handleToggleStep(step.id)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        border: `2px solid ${step.completed ? '#0078d4' : '#ccc'}`,
+                        backgroundColor: step.completed ? '#0078d4' : 'transparent',
+                        marginRight: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
                     >
-                      {tag.name}
-                    </TagOption>
-                  ))}
-              </TagsList>
-            )}
-          </TagInputContainer>
-        </TagsSection>
-        
-        <StepsSection>
-          <StepsHeader>
-            <StepsLabel>步骤</StepsLabel>
-          </StepsHeader>
+                      {step.completed && <HiCheck size={12} color="white" />}
+                    </div>
+                    <input 
+                      value={step.title || ''}
+                      onChange={(e) => handleUpdateStepTitle(step.id, e.target.value)}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        background: 'transparent',
+                        textDecoration: step.completed ? 'line-through' : 'none',
+                        color: step.completed ? '#666' : 'inherit'
+                      }}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveStep(step.id);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#666',
+                        padding: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <HiOutlineTrash size={16} />
+                    </button>
+                  </li>
+                ) : null
+              )}
+            </ul>
+            
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: '12px' }}>
+              <div style={{ 
+                width: '18px', 
+                height: '18px', 
+                marginRight: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <HiPlus size={16} color="#666" />
+              </div>
+              <input
+                value={newStepText}
+                onChange={(e) => setNewStepText(e.target.value)}
+                placeholder="添加步骤"
+                onKeyDown={handleKeyDown}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  background: 'transparent'
+                }}
+              />
+            </div>
+          </div>
           
-          <StepsList>
-            {Array.isArray(steps) && steps.map(step => 
-              step && step.id ? (
-                <StepItem key={step.id}>
-                  <StepCheckbox 
-                    checked={step.completed || false}
-                    onClick={() => handleToggleStep(step.id)}
-                  >
-                    <HiCheck size={12} />
-                  </StepCheckbox>
-                  <StepInput 
-                    value={step.title || ''}
-                    onChange={(e) => handleUpdateStepTitle(step.id, e.target.value)}
-                    completed={step.completed || false}
-                  />
-                  <RemoveStepButton onClick={() => handleRemoveStep(step.id)}>
-                    <HiOutlineTrash size={16} />
-                  </RemoveStepButton>
-                </StepItem>
-              ) : null
-            )}
-          </StepsList>
-          
-          <NewStepInput>
-            <StepPlusIcon>
-              <HiPlus size={16} />
-            </StepPlusIcon>
-            <NewStepField 
-              ref={newStepInputRef}
-              value={newStepText}
-              onChange={(e) => setNewStepText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="添加步骤"
+          <NotesContainer>
+            <NotesTitle>备注</NotesTitle>
+            <NotesInput
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="添加备注..."
             />
-            {newStepText.trim() && (
-              <AddStepButton onClick={handleAddStep}>
-                添加
-              </AddStepButton>
-            )}
-          </NewStepInput>
-        </StepsSection>
-        
-        <NotesSection>
-          <NotesLabel>备注</NotesLabel>
-          <NotesTextarea 
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="添加备注..."
-          />
-        </NotesSection>
+          </NotesContainer>
+          
+          <DeleteButton onClick={handleDelete}>
+            <HiOutlineTrash size={18} />
+            删除任务
+          </DeleteButton>
+        </Form>
       </DetailContent>
-      
-      <DetailFooter>
-        <DeleteButton onClick={() => {
-          dispatch(removeTodo(todo.id));
-          onClose();
-        }}>
-          <HiOutlineTrash size={18} />
-          删除任务
-        </DeleteButton>
-        <SaveButton onClick={saveChanges}>
-          保存更改
-        </SaveButton>
-      </DetailFooter>
     </DetailContainer>
   );
 };

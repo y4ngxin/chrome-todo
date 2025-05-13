@@ -5,7 +5,9 @@ import { AppState } from '../utils/store';
 import Todo from './Todo';
 import { Todo as TodoType } from '../utils/slices/todosSlice';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from 'react-beautiful-dnd';
-import { reorderTodos } from '../utils/slices/todosSlice';
+import { reorderTodos, saveTodos } from '../utils/slices/todosSlice';
+import { store } from '../utils/store';
+import * as storageService from '../utils/storage';
 
 const TodoListContainer = styled.div`
   margin-top: 16px;
@@ -117,12 +119,33 @@ const TodoList: React.FC<TodoListProps> = ({
       return;
     }
     
+    // 获取重新排序前的列表ID或当前视图
+    const activeListId = listId || currentView;
+    
+    console.log(`开始排序操作，列表：${activeListId}，从${result.source.index}到${result.destination.index}`);
+    
     // 派发重新排序的action
     dispatch(reorderTodos({
       sourceIndex: result.source.index,
       destinationIndex: result.destination.index,
-      listId: listId || currentView // 当前列表ID或视图ID
+      listId: activeListId // 当前列表ID或视图ID
     }));
+    
+    // 手动强制保存至存储
+    try {
+      // 在状态更新后，通过Promise确保正确的保存顺序
+      Promise.resolve().then(() => {
+        const currentTodos = store.getState().todos.items;
+        console.log(`正在手动保存排序结果，共${currentTodos.length}个任务`);
+        
+        // 使用saveTodos操作直接保存到存储
+        storageService.setTodos(currentTodos)
+          .then(() => console.log('TodoList排序结果保存成功'))
+          .catch(err => console.error('TodoList排序结果保存失败', err));
+      });
+    } catch (error) {
+      console.error('保存排序结果时出错:', error);
+    }
   };
   
   // 如果没有待办事项，显示空状态

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChromeToDo",
   "version": "1.0.0",
-  "description": "一款融合 Microsoft To Do 优势的 Chrome 浏览器待办事项插件",
+  "description": "高效现代化的Chrome浏览器待办事项插件，简洁直观的界面助您高效管理任务，提升工作和学习效率",
   "icons": {
     "16": "assets/icon16.png",
     "48": "assets/icon48.png",
