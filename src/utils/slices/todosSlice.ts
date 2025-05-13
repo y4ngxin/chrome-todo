@@ -14,6 +14,8 @@ export interface Todo {
   notes?: string;
   steps?: TodoStep[];
   url?: string;
+  priority?: 'low' | 'medium' | 'high'; // 任务优先级
+  tags?: string[]; // 任务标签
 }
 
 export interface TodoStep {
@@ -95,7 +97,9 @@ export const todosSlice = createSlice({
           isImportant: action.payload.isImportant !== undefined ? action.payload.isImportant : originalTodo.isImportant,
           dueDate: action.payload.dueDate !== undefined ? action.payload.dueDate : originalTodo.dueDate,
           notes: action.payload.notes !== undefined ? action.payload.notes : originalTodo.notes,
-          steps: action.payload.steps !== undefined ? action.payload.steps : originalTodo.steps
+          steps: action.payload.steps !== undefined ? action.payload.steps : originalTodo.steps,
+          priority: action.payload.priority !== undefined ? action.payload.priority : originalTodo.priority,
+          tags: action.payload.tags !== undefined ? action.payload.tags : originalTodo.tags
         };
       }
     },

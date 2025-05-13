@@ -28,6 +28,31 @@ export const defaultLists: TodoList[] = [
   },
 ];
 
+// 示例列表
+export const sampleLists: TodoList[] = [
+  {
+    id: 'work',
+    name: '工作',
+    color: '#0078d7',
+    icon: '💼',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'personal',
+    name: '个人',
+    color: '#107c41',
+    icon: '🏠',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'shopping',
+    name: '购物',
+    color: '#ff8c00',
+    icon: '🛒',
+    createdAt: new Date().toISOString()
+  },
+];
+
 // 示例待办事项
 export const sampleTodos: Todo[] = [
   {
@@ -39,6 +64,8 @@ export const sampleTodos: Todo[] = [
     listId: 'work',
     isImportant: true,
     isMyDay: true,
+    priority: 'high',
+    tags: ['开发', '项目', '紧急'],
     steps: [
       {
         id: uuidv4(),
@@ -65,6 +92,8 @@ export const sampleTodos: Todo[] = [
     listId: 'personal',
     isImportant: false,
     isMyDay: false,
+    priority: 'medium',
+    tags: ['购物', '家庭'],
     steps: [
       {
         id: uuidv4(),
@@ -92,6 +121,8 @@ export const sampleTodos: Todo[] = [
     listId: 'work',
     isImportant: true,
     isMyDay: false,
+    priority: 'medium',
+    tags: ['学习', '技术'],
   },
   {
     id: uuidv4(),
@@ -101,5 +132,7 @@ export const sampleTodos: Todo[] = [
     listId: 'personal',
     isImportant: false,
     isMyDay: true,
+    priority: 'low',
+    tags: ['健康', '日常'],
   },
 ]; 

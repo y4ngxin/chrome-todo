@@ -1,6 +1,6 @@
-import { createGlobalStyle } from 'styled-components';
+import { createGlobalStyle, DefaultTheme } from 'styled-components';
 
-export interface Theme {
+export interface Theme extends DefaultTheme {
   primaryColor: string;
   primaryColorDark: string;
   primaryColorLight: string;
@@ -14,8 +14,13 @@ export interface Theme {
   borderColor: string;
   shadowColor: string;
   successColor: string;
+  successColorLight: string;
   errorColor: string;
+  errorColorLight: string;
   warningColor: string;
+  warningColorLight: string;
+  infoColor: string;
+  infoColorLight: string;
   cardBackground: string;
   sidebarBackground: string;
   inputBackground: string;
@@ -37,9 +42,19 @@ export interface Theme {
   // 周视图相关
   todayHighlight: string;
   todayBackground: string;
+  
+  // 标签相关
+  tagBackground: string;
+  tagText: string;
+  
+  // 切换组件
+  toggleBackground: string;
+  toggleBackgroundActive: string;
+  toggleButton: string;
 }
 
 export const lightTheme: Theme = {
+  // 基础颜色
   primaryColor: '#0078d7',
   primaryColorDark: '#005a9e',
   primaryColorLight: '#c7e0f4',
@@ -52,15 +67,24 @@ export const lightTheme: Theme = {
   textMuted: '#605e5c',
   borderColor: '#e1dfdd',
   shadowColor: 'rgba(0, 0, 0, 0.1)',
-  successColor: '#107C10',
-  errorColor: '#A4262C',
-  warningColor: '#C19C00',
+  
+  // 界面元素
   cardBackground: '#ffffff',
   sidebarBackground: '#ffffff',
   inputBackground: '#ffffff',
   activeItemBackground: '#edebe9',
   hoverBackground: '#f3f2f1',
   disabledColor: '#c8c8c8',
+  
+  // 状态颜色
+  successColor: '#107C10',
+  successColorLight: '#e7f2ec',
+  errorColor: '#A4262C',
+  errorColorLight: '#fde7e7',
+  warningColor: '#C19C00',
+  warningColorLight: '#fff3e0',
+  infoColor: '#0078d4',
+  infoColorLight: '#e5f1fb',
   
   // 待办事项相关
   todoBackground: '#ffffff',
@@ -75,10 +99,20 @@ export const lightTheme: Theme = {
   
   // 周视图相关
   todayHighlight: '#e1f1ff',
-  todayBackground: '#f5f9ff'
+  todayBackground: '#f5f9ff',
+  
+  // 标签相关
+  tagBackground: '#eef4fd',
+  tagText: '#2564cf',
+  
+  // 切换组件
+  toggleBackground: '#767676',
+  toggleBackgroundActive: '#0078d7',
+  toggleButton: '#ffffff'
 };
 
 export const darkTheme: Theme = {
+  // 基础颜色
   primaryColor: '#0078d7',
   primaryColorDark: '#005a9e',
   primaryColorLight: '#203d52',
@@ -91,15 +125,24 @@ export const darkTheme: Theme = {
   textMuted: '#a19f9d',
   borderColor: '#3b3a39',
   shadowColor: 'rgba(0, 0, 0, 0.4)',
-  successColor: '#107C10',
-  errorColor: '#F1707B',
-  warningColor: '#FED700',
+  
+  // 界面元素
   cardBackground: '#252423',
   sidebarBackground: '#252423',
   inputBackground: '#323130',
   activeItemBackground: '#3b3a39',
   hoverBackground: '#323130',
   disabledColor: '#484644',
+  
+  // 状态颜色
+  successColor: '#107C10',
+  successColorLight: '#2b3c2b',
+  errorColor: '#F1707B',
+  errorColorLight: '#3f2b2b',
+  warningColor: '#FED700',
+  warningColorLight: '#3d3223',
+  infoColor: '#2196f3',
+  infoColorLight: '#263340',
   
   // 待办事项相关
   todoBackground: '#323130',
@@ -114,7 +157,16 @@ export const darkTheme: Theme = {
   
   // 周视图相关
   todayHighlight: '#0f3254',
-  todayBackground: '#0f2336'
+  todayBackground: '#0f2336',
+  
+  // 标签相关
+  tagBackground: '#3a3a3a',
+  tagText: '#e0e0e0',
+  
+  // 切换组件
+  toggleBackground: '#4d4d4d',
+  toggleBackgroundActive: '#0078d7',
+  toggleButton: '#ffffff'
 };
 
 export const GlobalStyle = createGlobalStyle<{ theme: Theme }>`

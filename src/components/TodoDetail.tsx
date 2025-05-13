@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { useAppDispatch, AppState } from '../utils/store';
 import { useSelector } from 'react-redux';
-import { Todo, TodoStep, updateTodo, addStep, removeStep, toggleStepCompleted } from '../utils/slices/todosSlice';
+import { Todo, TodoStep, updateTodo, addStep, removeStep, toggleStepCompleted, toggleMyDay, toggleImportant, toggleCompleted, removeTodo } from '../utils/slices/todosSlice';
 import { format, parseISO, isValid } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,7 +16,11 @@ import {
   HiX, 
   HiCheck,
   HiPlus, 
-  HiOutlineTrash
+  HiOutlineTrash,
+  HiOutlineCheck,
+  HiOutlineFlag,
+  HiOutlineExclamation,
+  HiOutlineExclamationCircle
 } from 'react-icons/hi';
 
 // 主容器
@@ -144,6 +148,129 @@ const DateLabel = styled.label`
 `;
 
 const DateInput = styled.input`
+  padding: 8px 12px;
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 4px;
+  background-color: ${props => props.theme.inputBackground};
+  color: ${props => props.theme.textColor};
+  width: 100%;
+  
+  &:focus {
+    outline: none;
+    border-color: ${props => props.theme.primaryColor};
+  }
+`;
+
+// 优先级选择
+const PrioritySection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const PriorityLabel = styled.label`
+  display: block;
+  margin-bottom: 8px;
+  color: ${props => props.theme.textMuted};
+  font-size: 14px;
+`;
+
+const PriorityOptions = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+interface PriorityButtonProps {
+  active: boolean;
+  priority: 'low' | 'medium' | 'high';
+}
+
+const PriorityButton = styled.button<PriorityButtonProps>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  background-color: ${props => {
+    if (props.active) {
+      switch(props.priority) {
+        case 'high': return props.theme.errorColorLight;
+        case 'medium': return props.theme.warningColorLight;
+        case 'low': return props.theme.infoColorLight;
+        default: return 'transparent';
+      }
+    } else {
+      return 'transparent';
+    }
+  }};
+  color: ${props => {
+    if (props.active) {
+      switch(props.priority) {
+        case 'high': return props.theme.errorColor;
+        case 'medium': return props.theme.warningColor;
+        case 'low': return props.theme.infoColor;
+        default: return props.theme.textColor;
+      }
+    } else {
+      return props.theme.textMuted;
+    }
+  }};
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => {
+      switch(props.priority) {
+        case 'high': return props.theme.errorColorLight;
+        case 'medium': return props.theme.warningColorLight;
+        case 'low': return props.theme.infoColorLight;
+        default: return props.theme.backgroundHover;
+      }
+    }};
+  }
+`;
+
+// 标签管理
+const TagsSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const TagsLabel = styled.label`
+  display: block;
+  margin-bottom: 8px;
+  color: ${props => props.theme.textMuted};
+  font-size: 14px;
+`;
+
+const TagsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const Tag = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  background-color: ${props => props.theme.tagBackground};
+  color: ${props => props.theme.tagText};
+  font-size: 12px;
+`;
+
+const RemoveTagButton = styled.button`
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+`;
+
+const TagInput = styled.input`
   padding: 8px 12px;
   border: 1px solid ${props => props.theme.borderColor};
   border-radius: 4px;
@@ -319,6 +446,47 @@ const NewStepField = styled.input`
   }
 `;
 
+// 底部操作栏
+const DetailFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  border-top: 1px solid ${props => props.theme.borderColor};
+`;
+
+const DeleteButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  background-color: ${props => props.theme.errorColorLight};
+  color: ${props => props.theme.errorColor};
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => props.theme.errorColor};
+    color: white;
+  }
+`;
+
+const SaveButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  background-color: ${props => props.theme.primaryColor};
+  color: white;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => props.theme.primaryColorDark};
+  }
+`;
+
 interface TodoDetailProps {
   todoId: string | null;
   onClose: () => void;
@@ -360,6 +528,9 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
   const [notes, setNotes] = useState('');
   const [steps, setSteps] = useState<TodoStep[]>([]);
   const [newStepText, setNewStepText] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | undefined>(undefined);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState('');
   
   // 新步骤输入框引用，用于自动聚焦
   const newStepInputRef = useRef<HTMLInputElement>(null);
@@ -381,6 +552,8 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         notes: notes || undefined,
         steps: steps || [],
+        priority: priority || undefined,
+        tags: tags || [],
         // 不要更新这些字段，防止循环更新
         // completed: todo.completed,
         // listId: todo.listId,
@@ -396,7 +569,7 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     } catch (error) {
       console.error('Error saving todo:', error);
     }
-  }, [dispatch, todo, title, isMyDay, isImportant, dueDate, notes, steps, shouldSave]);
+  }, [dispatch, todo, title, isMyDay, isImportant, dueDate, notes, steps, priority, tags, shouldSave]);
   
   // 当todo变化时更新本地状态
   useEffect(() => {
@@ -411,6 +584,8 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
           : '';
         const newNotes = todo.notes || '';
         const newSteps = Array.isArray(todo.steps) ? todo.steps : [];
+        const newPriority = todo.priority || undefined;
+        const newTags = Array.isArray(todo.tags) ? todo.tags : [];
         
         if (title !== newTitle) setTitle(newTitle);
         if (isMyDay !== newIsMyDay) setIsMyDay(newIsMyDay);
@@ -419,6 +594,8 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
         if (notes !== newNotes) setNotes(newNotes);
         // 深度比较会很昂贵，所以简单赋值
         setSteps(newSteps);
+        if (priority !== newPriority) setPriority(newPriority);
+        if (tags !== newTags) setTags(newTags);
       }
     } catch (error) {
       console.error('Error updating local state from todo:', error);
@@ -438,7 +615,7 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     }, 500);
     
     return () => clearTimeout(timerId);
-  }, [title, isMyDay, isImportant, dueDate, notes, steps, todo, saveChanges]);
+  }, [title, isMyDay, isImportant, dueDate, notes, steps, priority, tags, todo, saveChanges]);
   
   // 如果没有todo，显示空详情页
   if (!todo) {
@@ -448,11 +625,18 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
   // 切换"我的一天"状态
   const handleToggleMyDay = () => {
     setIsMyDay(prev => !prev);
+    dispatch(toggleMyDay(todo.id));
   };
   
   // 切换重要状态
   const handleToggleImportant = () => {
     setIsImportant(prev => !prev);
+    dispatch(toggleImportant(todo.id));
+  };
+  
+  // 切换完成状态
+  const handleToggleCompleted = () => {
+    dispatch(toggleCompleted(todo.id));
   };
   
   // 添加新步骤
@@ -531,6 +715,40 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
     }
   };
   
+  // 设置优先级
+  const handleSetPriority = (newPriority: 'low' | 'medium' | 'high') => {
+    setPriority(prev => prev === newPriority ? undefined : newPriority);
+  };
+  
+  // 添加标签
+  const handleAddTag = () => {
+    if (!newTag.trim() || tags.includes(newTag.trim())) return;
+    
+    setTags([...tags, newTag.trim()]);
+    setNewTag('');
+  };
+  
+  // 删除标签
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+  
+  // 按Enter键添加标签
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+  
+  // 按Enter键添加步骤
+  const handleStepKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddStep();
+    }
+  };
+  
   return (
     <DetailContainer isOpen={isOpen}>
       <DetailHeader>
@@ -578,6 +796,59 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
             onChange={(e) => setDueDate(e.target.value)}
           />
         </DateSection>
+        
+        <PrioritySection>
+          <PriorityLabel>优先级</PriorityLabel>
+          <PriorityOptions>
+            <PriorityButton 
+              priority="low"
+              active={priority === 'low'}
+              onClick={() => handleSetPriority('low')}
+              title="低优先级"
+            >
+              <HiOutlineFlag size={16} />
+              低
+            </PriorityButton>
+            <PriorityButton 
+              priority="medium"
+              active={priority === 'medium'}
+              onClick={() => handleSetPriority('medium')}
+              title="中优先级"
+            >
+              <HiOutlineExclamation size={16} />
+              中
+            </PriorityButton>
+            <PriorityButton 
+              priority="high"
+              active={priority === 'high'}
+              onClick={() => handleSetPriority('high')}
+              title="高优先级"
+            >
+              <HiOutlineExclamationCircle size={16} />
+              高
+            </PriorityButton>
+          </PriorityOptions>
+        </PrioritySection>
+        
+        <TagsSection>
+          <TagsLabel>标签</TagsLabel>
+          <TagsContainer>
+            {tags.map((tag, index) => (
+              <Tag key={index}>
+                {tag}
+                <RemoveTagButton onClick={() => handleRemoveTag(tag)}>
+                  <HiX size={12} />
+                </RemoveTagButton>
+              </Tag>
+            ))}
+          </TagsContainer>
+          <TagInput
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            placeholder="添加标签 (回车确认)"
+            onKeyDown={handleTagKeyDown}
+          />
+        </TagsSection>
         
         <StepsSection>
           <StepsHeader>
@@ -635,6 +906,19 @@ const TodoDetail: React.FC<TodoDetailProps> = ({ todoId, onClose }) => {
           />
         </NotesSection>
       </DetailContent>
+      
+      <DetailFooter>
+        <DeleteButton onClick={() => {
+          dispatch(removeTodo(todo.id));
+          onClose();
+        }}>
+          <HiOutlineTrash size={18} />
+          删除任务
+        </DeleteButton>
+        <SaveButton onClick={saveChanges}>
+          保存更改
+        </SaveButton>
+      </DetailFooter>
     </DetailContainer>
   );
 };

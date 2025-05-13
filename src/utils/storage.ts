@@ -1,5 +1,6 @@
 import { Todo } from './slices/todosSlice';
 import { TodoList } from './slices/listsSlice';
+import { PomodoroSettings } from './slices/uiSlice';
 
 // 存储键名
 export const STORAGE_KEYS = {
@@ -21,6 +22,7 @@ export interface UISettings {
   sidebarWidth: 'normal' | 'collapsed';
   currentView?: 'myDay' | 'important' | 'planned' | 'list' | 'week';
   weekViewDate?: string;
+  pomodoroSettings?: PomodoroSettings;
 }
 
 // 获取所有存储数据

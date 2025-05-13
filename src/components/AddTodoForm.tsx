@@ -6,6 +6,7 @@ import { addTodo } from '../utils/slices/todosSlice';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useSelector } from 'react-redux';
+import { HiOutlineFlag } from 'react-icons/hi';
 
 const FormContainer = styled.form`
   display: flex;
@@ -115,6 +116,64 @@ const DateInput = styled.input`
   }
 `;
 
+// 优先级选择组件样式
+const PriorityOptions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+interface PriorityButtonProps {
+  active: boolean;
+  priority: 'low' | 'medium' | 'high';
+}
+
+const PriorityButton = styled.button<PriorityButtonProps>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  background-color: ${props => {
+    if (props.active) {
+      switch(props.priority) {
+        case 'high': return props.theme.errorColorLight;
+        case 'medium': return props.theme.warningColorLight;
+        case 'low': return props.theme.infoColorLight;
+        default: return 'transparent';
+      }
+    } else {
+      return 'transparent';
+    }
+  }};
+  color: ${props => {
+    if (props.active) {
+      switch(props.priority) {
+        case 'high': return props.theme.errorColor;
+        case 'medium': return props.theme.warningColor;
+        case 'low': return props.theme.infoColor;
+        default: return props.theme.textColor;
+      }
+    } else {
+      return props.theme.textMuted;
+    }
+  }};
+  cursor: pointer;
+  font-size: 13px;
+  
+  &:hover {
+    background-color: ${props => {
+      switch(props.priority) {
+        case 'high': return props.theme.errorColorLight;
+        case 'medium': return props.theme.warningColorLight;
+        case 'low': return props.theme.infoColorLight;
+        default: return props.theme.backgroundHover;
+      }
+    }};
+  }
+`;
+
 interface AddTodoFormProps {
   listId?: string;
 }
@@ -126,10 +185,12 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
   const currentView = useSelector((state: AppState) => state.ui.currentView);
   
   const [title, setTitle] = useState('');
-  const [isMyDay, setIsMyDay] = useState(false);
+  const [isMyDay, setIsMyDay] = useState(true);
   const [isImportant, setIsImportant] = useState(false);
-  const [dueDate, setDueDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dueDate, setDueDate] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | undefined>(undefined);
+  const [showPriorityOptions, setShowPriorityOptions] = useState(false);
   
   // 根据当前视图自动设置一些属性
   useEffect(() => {
@@ -161,6 +222,7 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
       listId: targetListId,
       isImportant,
       isMyDay,
+      priority
     };
     
     dispatch(addTodo(newTodo));
@@ -169,13 +231,20 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
     setTitle('');
     // 如果当前视图是特定类型，则不重置对应的状态
     if (currentView !== 'myDay') {
-      setIsMyDay(false);
+      setIsMyDay(true);
     }
     if (currentView !== 'important') {
       setIsImportant(false);
     }
     setDueDate('');
     setShowDatePicker(false);
+    setPriority(undefined);
+    setShowPriorityOptions(false);
+  };
+  
+  // 处理优先级设置
+  const handleSetPriority = (newPriority: 'low' | 'medium' | 'high') => {
+    setPriority(prev => prev === newPriority ? undefined : newPriority);
   };
   
   return (
@@ -218,6 +287,15 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
           >
             日期
           </OptionButton>
+          
+          <OptionButton
+            type="button"
+            active={showPriorityOptions}
+            onClick={() => setShowPriorityOptions(!showPriorityOptions)}
+          >
+            <HiOutlineFlag size={16} />
+            优先级
+          </OptionButton>
         </div>
       </OptionRow>
       
@@ -231,6 +309,38 @@ const AddTodoForm: React.FC<AddTodoFormProps> = ({ listId }) => {
             min={format(new Date(), 'yyyy-MM-dd')}
           />
         </DatePickerContainer>
+      )}
+      
+      {showPriorityOptions && (
+        <PriorityOptions>
+          <PriorityButton 
+            type="button"
+            priority="low"
+            active={priority === 'low'}
+            onClick={() => handleSetPriority('low')}
+          >
+            <HiOutlineFlag size={16} />
+            低
+          </PriorityButton>
+          <PriorityButton 
+            type="button"
+            priority="medium"
+            active={priority === 'medium'}
+            onClick={() => handleSetPriority('medium')}
+          >
+            <HiOutlineFlag size={16} />
+            中
+          </PriorityButton>
+          <PriorityButton 
+            type="button"
+            priority="high"
+            active={priority === 'high'}
+            onClick={() => handleSetPriority('high')}
+          >
+            <HiOutlineFlag size={16} />
+            高
+          </PriorityButton>
+        </PriorityOptions>
       )}
     </FormContainer>
   );

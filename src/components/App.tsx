@@ -12,6 +12,7 @@ import WeekView from './WeekView';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import TodoDetail from './TodoDetail';
+import PomodoroTimer from './PomodoroTimer';
 
 interface AppContainerProps {
   sidebarWidth: string;
@@ -150,6 +151,7 @@ const App: React.FC = () => {
         <MainContent>
           <Header />
           <Content>
+            <PomodoroTimer />
             {renderContent()}
           </Content>
         </MainContent>

@@ -3,6 +3,29 @@ import * as storageService from '../storage';
 import { startOfWeek, format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
+// 番茄钟相关类型
+export interface PomodoroSettings {
+  workDuration: number; // 工作时长（分钟）
+  shortBreakDuration: number; // 短休息时长（分钟）
+  longBreakDuration: number; // 长休息时长（分钟）
+  longBreakInterval: number; // 几个工作周期后进行长休息
+  autoStartBreaks: boolean; // 是否自动开始休息
+  autoStartPomodoros: boolean; // 是否自动开始下一个番茄钟
+  alarmSound: string; // 提醒声音
+  alarmVolume: number; // 提醒音量
+}
+
+export interface PomodoroState {
+  isActive: boolean; // 是否正在计时
+  mode: 'work' | 'shortBreak' | 'longBreak'; // 当前模式
+  timeLeft: number; // 剩余时间（秒）
+  totalTime: number; // 总时间（秒）
+  completedPomodoros: number; // 已完成的番茄钟数量
+  startTime: number | null; // 开始时间戳
+  settings: PomodoroSettings; // 设置
+  currentTodoId: string | null; // 当前关联的任务ID
+}
+
 interface UIState {
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
@@ -10,14 +33,37 @@ interface UIState {
   currentView: 'myDay' | 'important' | 'planned' | 'list' | 'week';
   backgroundImage?: string;
   weekViewDate: string; // ISO格式的日期字符串，用于确定当前显示的周
+  pomodoro: PomodoroState; // 番茄钟状态
 }
+
+// 默认番茄钟设置
+const defaultPomodoroSettings: PomodoroSettings = {
+  workDuration: 25, // 默认25分钟工作
+  shortBreakDuration: 5, // 默认5分钟短休息
+  longBreakDuration: 15, // 默认15分钟长休息
+  longBreakInterval: 4, // 默认每4个番茄钟后进行长休息
+  autoStartBreaks: false, // 默认不自动开始休息
+  autoStartPomodoros: false, // 默认不自动开始下一个番茄钟
+  alarmSound: 'default', // 默认提醒声音
+  alarmVolume: 80 // 默认音量
+};
 
 const initialState: UIState = {
   theme: 'light',
   sidebarOpen: true,
   sidebarWidth: 'normal',
   currentView: 'myDay',
-  weekViewDate: format(new Date(), 'yyyy-MM-dd') // 默认为今天
+  weekViewDate: format(new Date(), 'yyyy-MM-dd'), // 默认为今天
+  pomodoro: {
+    isActive: false,
+    mode: 'work',
+    timeLeft: defaultPomodoroSettings.workDuration * 60, // 转换为秒
+    totalTime: defaultPomodoroSettings.workDuration * 60, // 转换为秒
+    completedPomodoros: 0,
+    startTime: null,
+    settings: defaultPomodoroSettings,
+    currentTodoId: null
+  }
 };
 
 // 异步 Thunks
@@ -31,7 +77,11 @@ export const fetchSettings = createAsyncThunk(
 
 export const saveSettings = createAsyncThunk(
   'ui/saveSettings',
-  async (settings: { theme: 'light' | 'dark'; sidebarWidth: 'normal' | 'collapsed' }) => {
+  async (settings: { 
+    theme: 'light' | 'dark'; 
+    sidebarWidth: 'normal' | 'collapsed';
+    pomodoroSettings?: PomodoroSettings
+  }) => {
     await storageService.setSettings(settings);
     return settings;
   }
@@ -81,6 +131,91 @@ export const uiSlice = createSlice({
     goToCurrentWeek: (state) => {
       // 回到当前周
       state.weekViewDate = format(new Date(), 'yyyy-MM-dd');
+    },
+    
+    // 番茄钟相关操作
+    startPomodoro: (state, action: PayloadAction<string | null>) => {
+      // 开始一个番茄钟，可以关联到特定任务
+      state.pomodoro.isActive = true;
+      state.pomodoro.startTime = Date.now();
+      state.pomodoro.currentTodoId = action.payload;
+    },
+    pausePomodoro: (state) => {
+      // 暂停番茄钟
+      state.pomodoro.isActive = false;
+    },
+    resumePomodoro: (state) => {
+      // 恢复番茄钟
+      state.pomodoro.isActive = true;
+      state.pomodoro.startTime = Date.now();
+    },
+    resetPomodoro: (state) => {
+      // 重置番茄钟
+      const duration = state.pomodoro.mode === 'work'
+        ? state.pomodoro.settings.workDuration
+        : state.pomodoro.mode === 'shortBreak'
+          ? state.pomodoro.settings.shortBreakDuration
+          : state.pomodoro.settings.longBreakDuration;
+      
+      state.pomodoro.isActive = false;
+      state.pomodoro.timeLeft = duration * 60;
+      state.pomodoro.totalTime = duration * 60;
+      state.pomodoro.startTime = null;
+    },
+    updateTimeLeft: (state, action: PayloadAction<number>) => {
+      // 更新剩余时间（秒）
+      state.pomodoro.timeLeft = action.payload;
+    },
+    completePomodoro: (state) => {
+      // 完成一个番茄钟
+      state.pomodoro.completedPomodoros += 1;
+      state.pomodoro.isActive = false;
+      
+      // 确定下一个模式
+      if (state.pomodoro.mode === 'work') {
+        // 如果刚完成工作周期，检查是否应该进入长休息
+        const shouldTakeLongBreak = 
+          state.pomodoro.completedPomodoros % state.pomodoro.settings.longBreakInterval === 0;
+        
+        state.pomodoro.mode = shouldTakeLongBreak ? 'longBreak' : 'shortBreak';
+        state.pomodoro.timeLeft = shouldTakeLongBreak 
+          ? state.pomodoro.settings.longBreakDuration * 60 
+          : state.pomodoro.settings.shortBreakDuration * 60;
+        state.pomodoro.totalTime = state.pomodoro.timeLeft;
+      } else {
+        // 如果刚完成休息周期，回到工作模式
+        state.pomodoro.mode = 'work';
+        state.pomodoro.timeLeft = state.pomodoro.settings.workDuration * 60;
+        state.pomodoro.totalTime = state.pomodoro.timeLeft;
+      }
+      
+      // 自动开始下一个周期（如果设置了）
+      if (
+        (state.pomodoro.mode === 'work' && state.pomodoro.settings.autoStartPomodoros) ||
+        (state.pomodoro.mode !== 'work' && state.pomodoro.settings.autoStartBreaks)
+      ) {
+        state.pomodoro.isActive = true;
+        state.pomodoro.startTime = Date.now();
+      }
+    },
+    setPomodoroSettings: (state, action: PayloadAction<Partial<PomodoroSettings>>) => {
+      // 更新番茄钟设置
+      state.pomodoro.settings = {
+        ...state.pomodoro.settings,
+        ...action.payload
+      };
+      
+      // 如果当前没有活动的番茄钟，则更新当前时间
+      if (!state.pomodoro.isActive) {
+        const duration = state.pomodoro.mode === 'work'
+          ? state.pomodoro.settings.workDuration
+          : state.pomodoro.mode === 'shortBreak'
+            ? state.pomodoro.settings.shortBreakDuration
+            : state.pomodoro.settings.longBreakDuration;
+        
+        state.pomodoro.timeLeft = duration * 60;
+        state.pomodoro.totalTime = duration * 60;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -89,6 +224,14 @@ export const uiSlice = createSlice({
         if (action.payload) {
           state.theme = action.payload.theme;
           state.sidebarWidth = action.payload.sidebarWidth;
+          
+          // 如果有番茄钟设置，也更新
+          if (action.payload.pomodoroSettings) {
+            state.pomodoro.settings = {
+              ...state.pomodoro.settings,
+              ...action.payload.pomodoroSettings
+            };
+          }
         }
       })
       .addCase(saveSettings.fulfilled, (state, action) => {
@@ -108,7 +251,15 @@ export const {
   setWeekViewDate,
   nextWeek,
   previousWeek,
-  goToCurrentWeek
+  goToCurrentWeek,
+  // 番茄钟相关操作
+  startPomodoro,
+  pausePomodoro,
+  resumePomodoro,
+  resetPomodoro,
+  updateTimeLeft,
+  completePomodoro,
+  setPomodoroSettings
 } = uiSlice.actions;
 
 export default uiSlice.reducer; 

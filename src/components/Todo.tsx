@@ -4,9 +4,24 @@ import { useAppDispatch } from '../utils/store';
 import { Todo as TodoType, toggleCompleted, toggleImportant, toggleMyDay, removeTodo } from '../utils/slices/todosSlice';
 import { format, parseISO, isToday, isThisWeek, isBefore } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { HiOutlineStar, HiStar, HiOutlineTrash, HiOutlineSun, HiSun, HiOutlineCalendar } from 'react-icons/hi';
+import { 
+  HiOutlineStar, 
+  HiStar, 
+  HiOutlineTrash, 
+  HiOutlineSun, 
+  HiSun, 
+  HiOutlineCalendar,
+  HiOutlineFlag,
+  HiOutlineExclamation,
+  HiOutlineExclamationCircle
+} from 'react-icons/hi';
 
-const TodoContainer = styled.div<{ completed: boolean }>`
+interface TodoContainerProps {
+  completed: boolean;
+  priority?: 'low' | 'medium' | 'high';
+}
+
+const TodoContainer = styled.div<TodoContainerProps>`
   display: flex;
   align-items: center;
   padding: 12px;
@@ -16,6 +31,17 @@ const TodoContainer = styled.div<{ completed: boolean }>`
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
   opacity: ${props => props.completed ? 0.7 : 1};
+  border-left: ${props => {
+    if (!props.completed && props.priority) {
+      switch(props.priority) {
+        case 'high': return `4px solid ${props.theme.errorColor}`;
+        case 'medium': return `4px solid ${props.theme.warningColor}`;
+        case 'low': return `4px solid ${props.theme.infoColor}`;
+        default: return 'none';
+      }
+    }
+    return 'none';
+  }};
   
   &:hover {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
@@ -65,6 +91,7 @@ const TodoMetadata = styled.div`
   margin-top: 4px;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 `;
 
 const TodoDueDate = styled.span<{ isOverdue: boolean }>`
@@ -72,6 +99,31 @@ const TodoDueDate = styled.span<{ isOverdue: boolean }>`
   align-items: center;
   gap: 4px;
   color: ${props => props.isOverdue ? props.theme.errorColor : props.theme.textMuted};
+`;
+
+const TodoPriority = styled.span<{ priority: 'low' | 'medium' | 'high' }>`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: ${props => {
+    switch(props.priority) {
+      case 'high': return props.theme.errorColor;
+      case 'medium': return props.theme.warningColor;
+      case 'low': return props.theme.infoColor;
+      default: return props.theme.textMuted;
+    }
+  }};
+`;
+
+const TodoTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  background-color: ${props => props.theme.tagBackground};
+  color: ${props => props.theme.tagText};
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-right: 4px;
 `;
 
 const TodoActions = styled.div`
@@ -98,7 +150,7 @@ const ActionButton = styled.button`
 
 interface TodoProps {
   todo: TodoType;
-  onClick?: () => void;
+  onClick?: (todoId: string) => void;
 }
 
 const Todo: React.FC<TodoProps> = ({ todo, onClick }) => {
@@ -119,6 +171,53 @@ const Todo: React.FC<TodoProps> = ({ todo, onClick }) => {
   
   const handleRemove = () => {
     dispatch(removeTodo(todo.id));
+  };
+  
+  // 获取优先级图标
+  const getPriorityIcon = () => {
+    if (!todo.priority) return null;
+    
+    switch(todo.priority) {
+      case 'high':
+        return <HiOutlineExclamationCircle size={16} />;
+      case 'medium':
+        return <HiOutlineExclamation size={16} />;
+      case 'low':
+        return <HiOutlineFlag size={16} />;
+      default:
+        return null;
+    }
+  };
+  
+  // 格式化优先级
+  const formatPriority = () => {
+    if (!todo.priority) return null;
+    
+    const priorityText = {
+      high: '高优先级',
+      medium: '中优先级',
+      low: '低优先级'
+    };
+    
+    return (
+      <TodoPriority priority={todo.priority}>
+        {getPriorityIcon()}
+        {priorityText[todo.priority]}
+      </TodoPriority>
+    );
+  };
+  
+  // 格式化标签
+  const formatTags = () => {
+    if (!todo.tags || todo.tags.length === 0) return null;
+    
+    return (
+      <>
+        {todo.tags.map((tag, index) => (
+          <TodoTag key={index}>{tag}</TodoTag>
+        ))}
+      </>
+    );
   };
   
   // 格式化截止日期
@@ -150,7 +249,7 @@ const Todo: React.FC<TodoProps> = ({ todo, onClick }) => {
   const handleContentClick = (e: React.MouseEvent) => {
     // 阻止事件冒泡，以免触发整个容器的点击事件
     e.stopPropagation();
-    if (onClick) onClick();
+    if (onClick) onClick(todo.id);
   };
   
   // 阻止按钮点击传播
@@ -161,9 +260,10 @@ const Todo: React.FC<TodoProps> = ({ todo, onClick }) => {
   return (
     <TodoContainer 
       completed={todo.completed}
+      priority={todo.priority}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onClick && onClick()}
+      onClick={() => onClick && onClick(todo.id)}
     >
       <Checkbox 
         checked={todo.completed} 
@@ -176,6 +276,8 @@ const Todo: React.FC<TodoProps> = ({ todo, onClick }) => {
         <TodoTitle completed={todo.completed}>{todo.title}</TodoTitle>
         <TodoMetadata>
           {formatDueDate()}
+          {formatPriority()}
+          {formatTags()}
         </TodoMetadata>
       </TodoContent>
       <TodoActions onClick={handleButtonClick}>
