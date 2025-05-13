@@ -1,33 +1,32 @@
-import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
-import todoReducer from './slices/todosSlice';
-import listReducer from './slices/listsSlice';
+import { configureStore } from '@reduxjs/toolkit';
+import { useDispatch, TypedUseSelectorHook, useSelector } from 'react-redux';
+import todosReducer from './slices/todosSlice';
+import listsReducer from './slices/listsSlice';
 import uiReducer from './slices/uiSlice';
 import syncStorageMiddleware from './middleware/syncStorage';
-import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import offlineMiddleware from './middleware/offlineMiddleware';
 
-const reducer = {
-  todos: todoReducer,
-  lists: listReducer,
+// 创建reducer对象
+const rootReducer = {
+  todos: todosReducer,
+  lists: listsReducer,
   ui: uiReducer,
 };
 
-// 创建store
+// 配置store
 export const store = configureStore({
-  reducer,
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) => 
-    getDefaultMiddleware().concat(syncStorageMiddleware)
+    getDefaultMiddleware().concat(syncStorageMiddleware, offlineMiddleware),
 });
 
-// 从store推断类型
+// 导出类型
+export type RootState = ReturnType<typeof store.getState>;
+export type AppState = RootState;
 export type AppDispatch = typeof store.dispatch;
-export type AppState = ReturnType<typeof store.getState>;
-export type AppThunk<ReturnType = void> = ThunkAction<
-  ReturnType,
-  AppState,
-  unknown,
-  Action<string>
->;
 
-// 使用TypedDispatch而不是普通dispatch
+// 自定义hooks
 export const useAppDispatch = () => useDispatch<AppDispatch>();
-export const useAppSelector: TypedUseSelectorHook<AppState> = useSelector; 
+export const useAppSelector: TypedUseSelectorHook<AppState> = useSelector;
+
+export default store; 

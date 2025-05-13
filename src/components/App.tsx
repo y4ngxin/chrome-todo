@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import styled, { ThemeProvider } from 'styled-components';
-import { AppState, useAppDispatch } from '../utils/store';
+import { AppState, useAppDispatch, store } from '../utils/store';
 import { lightTheme, darkTheme, GlobalStyle } from '../styles/theme';
 import { fetchTodos } from '../utils/slices/todosSlice';
 import { fetchLists } from '../utils/slices/listsSlice';
-import { fetchSettings } from '../utils/slices/uiSlice';
+import { fetchSettings, setNetworkStatus } from '../utils/slices/uiSlice';
 import AddTodoForm from './AddTodoForm';
 import TodoList from './TodoList';
 import WeekView from './WeekView';
@@ -13,6 +13,9 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import TodoDetail from './TodoDetail';
 import PomodoroTimer from './PomodoroTimer';
+import { listenToNetworkChanges, getNetworkStatus } from '../utils/offlineSupport';
+import { setupPeriodicSync, checkAndSync } from '../utils/syncService';
+import { AnyAction } from '@reduxjs/toolkit';
 
 interface AppContainerProps {
   sidebarWidth: string;
@@ -85,17 +88,48 @@ const App: React.FC = () => {
   // 加载数据
   useEffect(() => {
     // 初始化时加载设置
-    dispatch(fetchSettings());
+    dispatch(fetchSettings() as unknown as AnyAction);
     
     // 加载待办事项和列表
     if (todosStatus === 'idle') {
-      dispatch(fetchTodos());
+      dispatch(fetchTodos() as unknown as AnyAction);
     }
     
     if (listsStatus === 'idle') {
-      dispatch(fetchLists());
+      dispatch(fetchLists() as unknown as AnyAction);
     }
   }, [dispatch, todosStatus, listsStatus]);
+  
+  // 配置网络状态监听
+  useEffect(() => {
+    // 初始化网络状态
+    dispatch(setNetworkStatus(getNetworkStatus()));
+    
+    // 设置网络状态变化监听
+    const handleOnline = () => {
+      dispatch(setNetworkStatus('online'));
+      checkAndSync(dispatch, () => store.getState());
+    };
+    
+    const handleOffline = () => {
+      dispatch(setNetworkStatus('offline'));
+    };
+    
+    const cleanupNetworkListener = listenToNetworkChanges(handleOnline, handleOffline);
+    
+    // 设置定期同步
+    const cleanupPeriodicSync = setupPeriodicSync(
+      dispatch,
+      () => store.getState(),
+      30000 // 30秒同步一次
+    );
+    
+    // 组件卸载时清理
+    return () => {
+      cleanupNetworkListener();
+      cleanupPeriodicSync();
+    };
+  }, [dispatch]);
   
   // 检查数据是否正在加载
   const isLoading = todosStatus === 'loading' || listsStatus === 'loading';
@@ -158,11 +192,4 @@ const App: React.FC = () => {
         <TodoDetail 
           todoId={activeTodoId} 
           onClose={handleCloseTodoDetail} 
-          key={activeTodoId || 'no-todo'} 
-        />
-      </AppContainer>
-    </ThemeProvider>
-  );
-};
-
-export default App;
+          key

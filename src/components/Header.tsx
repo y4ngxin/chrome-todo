@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { AppState, useAppDispatch } from '../utils/store';
 import { toggleTheme } from '../utils/slices/uiSlice';
 import { HiSun, HiMoon, HiCalendar } from 'react-icons/hi';
+import NetworkStatus from './NetworkStatus';
 
 const HeaderContainer = styled.header`
   padding: 16px;
@@ -92,6 +93,12 @@ const ThemeToggleButton = styled.button`
   }
 `;
 
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
 const Header: React.FC = () => {
   const dispatch = useAppDispatch();
   const { theme, currentView } = useSelector((state: AppState) => state.ui);
@@ -134,17 +141,23 @@ const Header: React.FC = () => {
     return null;
   };
   
+  // 切换主题
+  const handleToggleTheme = () => {
+    dispatch(toggleTheme());
+  };
+  
   return (
     <HeaderContainer>
       <TitleArea>
         <Title>{getTitle()}</Title>
         {getIcon()}
       </TitleArea>
-      <Actions>
-        <ThemeToggleButton onClick={() => dispatch(toggleTheme())}>
+      <RightSection>
+        <NetworkStatus />
+        <ThemeToggleButton onClick={handleToggleTheme}>
           {theme === 'light' ? <HiMoon size={20} /> : <HiSun size={20} />}
         </ThemeToggleButton>
-      </Actions>
+      </RightSection>
     </HeaderContainer>
   );
 };

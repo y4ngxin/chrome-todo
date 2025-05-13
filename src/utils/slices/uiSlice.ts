@@ -2,6 +2,7 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import * as storageService from '../storage';
 import { startOfWeek, format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { NetworkStatus, getNetworkStatus } from '../offlineSupport';
 
 // 番茄钟相关类型
 export interface PomodoroSettings {
@@ -34,6 +35,10 @@ interface UIState {
   backgroundImage?: string;
   weekViewDate: string; // ISO格式的日期字符串，用于确定当前显示的周
   pomodoro: PomodoroState; // 番茄钟状态
+  networkStatus: NetworkStatus; // 网络状态
+  syncStatus: 'synced' | 'syncing' | 'error'; // 同步状态
+  needsSync: boolean; // 是否需要同步
+  lastSynced: number | null; // 上次同步时间
 }
 
 // 默认番茄钟设置
@@ -63,7 +68,11 @@ const initialState: UIState = {
     startTime: null,
     settings: defaultPomodoroSettings,
     currentTodoId: null
-  }
+  },
+  networkStatus: getNetworkStatus(), // 初始化为当前网络状态
+  syncStatus: 'synced',
+  needsSync: false,
+  lastSynced: null
 };
 
 // 异步 Thunks
@@ -216,6 +225,37 @@ export const uiSlice = createSlice({
         state.pomodoro.timeLeft = duration * 60;
         state.pomodoro.totalTime = duration * 60;
       }
+    },
+    
+    // 网络状态相关操作
+    setNetworkStatus: (state, action: PayloadAction<NetworkStatus>) => {
+      state.networkStatus = action.payload;
+      
+      // 如果刚刚重新连接到网络，且有未同步的数据，则标记需要同步
+      if (action.payload === 'online' && state.networkStatus === 'offline') {
+        state.needsSync = true;
+      }
+    },
+    setSyncStatus: (state, action: PayloadAction<UIState['syncStatus']>) => {
+      state.syncStatus = action.payload;
+      
+      // 如果同步成功，更新最后同步时间并重置同步标志
+      if (action.payload === 'synced') {
+        state.lastSynced = Date.now();
+        state.needsSync = false;
+      }
+    },
+    syncComplete: (state) => {
+      state.syncStatus = 'synced';
+      state.lastSynced = Date.now();
+      state.needsSync = false;
+    },
+    syncFailed: (state) => {
+      state.syncStatus = 'error';
+      // 保持 needsSync 为 true，以便稍后重试
+    },
+    markNeedsSync: (state) => {
+      state.needsSync = true;
     }
   },
   extraReducers: (builder) => {
@@ -231,6 +271,15 @@ export const uiSlice = createSlice({
               ...state.pomodoro.settings,
               ...action.payload.pomodoroSettings
             };
+          }
+          
+          // 更新视图设置
+          if (action.payload.currentView) {
+            state.currentView = action.payload.currentView;
+          }
+          
+          if (action.payload.weekViewDate) {
+            state.weekViewDate = action.payload.weekViewDate;
           }
         }
       })
@@ -259,7 +308,13 @@ export const {
   resetPomodoro,
   updateTimeLeft,
   completePomodoro,
-  setPomodoroSettings
+  setPomodoroSettings,
+  // 网络状态相关操作
+  setNetworkStatus,
+  setSyncStatus,
+  syncComplete,
+  syncFailed,
+  markNeedsSync
 } = uiSlice.actions;
 
 export default uiSlice.reducer; 

@@ -22,7 +22,8 @@
     "contextMenus"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -33,5 +34,6 @@
   "options_page": "options.html",
   "chrome_url_overrides": {
     "newtab": "popup.html"
-  }
+  },
+  "offline_enabled": true
 } 
