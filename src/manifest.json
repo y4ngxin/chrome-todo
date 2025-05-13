@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "ChromeToDo",
+  "version": "1.0.0",
+  "description": "一款融合 Microsoft To Do 优势的 Chrome 浏览器待办事项插件",
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "contextMenus"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "options_page": "popup.html"
+} 
